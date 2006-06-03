@@ -1,11 +1,11 @@
 <master>
-  <property name="title">#acs-tcl.lt_Problem_with_your_inp#</property>
+  <property name="title">Problem with your input</property>
 
 <p>
-  #acs-tcl.We_had#
-  <if @exception_count@ gt 1>#acs-tcl.some_problems#</if>
-  <else>#acs-tcl.a_problem#</else>
-  #acs-tcl.with_your_input#
+  We had
+  <if @exception_count@ gt 1>some problems</if>
+  <else>a problem</else>
+  with your input:
 </p>
 
 <ul>
@@ -13,10 +13,9 @@
 </ul>
 
 <p>
-  #acs-tcl.lt_Please_back_up_using_# <if @exception_count@ gt 1>#acs-tcl.errors#</if><else>#acs-tcl.error#</else>#acs-tcl.lt__and_resubmit_your_en#
+  Please back up using your browser, correct the above <if @exception_count@ gt 1>s</if>, and resubmit your entry.
 </p>
 
 <p>
-  #acs-tcl.Thank_you#
+  Thank you.
 </p>
-

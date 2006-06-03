@@ -17,7 +17,7 @@ begin
 
   main_site_id := apm_service__new(
                     null,
-		    ''#acs-kernel.Main_Site#'',
+		    ''Main Site'',
 		    ''acs-subsite'',
                     ''apm_service'',
                     now(),
@@ -54,7 +54,7 @@ begin
                    null,
                    null,
                    null,
-                   ''#acs-kernel.Main_Site_Members#'',
+                   ''Main Site Members'',
                    -2,
                    ''membership_rel'',
                    null
@@ -68,7 +68,7 @@ begin
                    null,
                    null,
                    null,
-                   ''#acs-kernel.lt_Main_Site_Administrat#'',
+                   ''Main Site Administrators'',
                    -2,
                    ''admin_rel'',
                    null

@@ -24,24 +24,24 @@ list::create \
     -key user_id \
     -page_size 20 \
     -page_query_name users_who_dont_have_any_permissions_paginator \
-    -no_data "[_ acs-subsite.lt_There_are_no_users_wh]" \
+    -no_data "There are no users who don't already have access to this object" \
     -bulk_action_export_vars { return_url object_id } \
     -bulk_actions [list \
-                       "[_ acs-subsite.Add_users]" "${perm_url}perm-user-add-2" "[_ acs-subsite.lt_Add_checked_users_to_]" \
+                       "Add users" "${perm_url}perm-user-add-2" "Add checked users to users who have permissions on your object." \
                       ]  \
     -elements {
         name {
-            label "[_ acs-subsite.Name]"
+            label "Name"
         }
         email {
-            label "[_ acs-subsite.Email]"
+            label "Email"
             link_url_eval {mailto:$email}
         }
         add {
-            label "[_ acs-subsite.Add]"
+            label "Add"
             link_url_col add_url
-            link_html { title "[_ acs-subsite.Add_this_user]" }
-            display_template "[_ acs-subsite.Add]"
+            link_html { title "Add this user" }
+            display_template "Add"
         }
     } -filters {
 	object_id {}

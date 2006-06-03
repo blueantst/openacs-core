@@ -21,7 +21,6 @@ ad_proc -public group::new {
     { -group_id "" } 
     { -context_id "" } 
     { -group_name "" }
-    { -pretty_name ""}
     {group_type "group"}
 } {
     Creates a group of this type by calling the .new function for
@@ -105,13 +104,11 @@ ad_proc -public group::new {
     lappend var_list [list context_id $context_id]
     lappend var_list [list $id_column $group_id]
     if { ![empty_string_p $group_name] } {
+	set group_name [lang::util::convert_to_i18n -prefix "group" -text "$group_name"]
         lappend var_list [list group_name $group_name]
-	if {[empty_string_p $pretty_name]} {
-	    set pretty_name $group_name
-	}
     }
 
-    set group_id [package_instantiate_object \
+    return [package_instantiate_object \
     	-creation_user $creation_user \
     	-creation_ip $creation_ip \
     	-package_name $package_name \
@@ -121,21 +118,6 @@ ad_proc -public group::new {
     	-variable_prefix $variable_prefix \
     	$group_type]
 
-    # We can't change the group_name to an I18N version as this would
-    # break compatability with group::member_p -group_name and the
-    # like. So instead we change the title of the object of the group
-    # (through the pretty name). We just have to change the display of
-    # groups to the title at the appropriate places.
-
-    if { ![empty_string_p [info procs "::lang::util::convert_to_i18n"]] } {
-	set pretty_name [lang::util::convert_to_i18n -message_key "group_title_${group_id}" -text "$pretty_name"]
-    } 
-	
-    # Update the title to the pretty name
-    if {![empty_string_p $pretty_name]} {
-	db_dml title_update "update acs_objects set title=:pretty_name where object_id = :group_id"
-    }
-    return $group_id
 }
 
 ad_proc group::delete { group_id } {
@@ -187,7 +169,6 @@ ad_proc group::delete { group_id } {
       END;
     "
 
-    util_memoize_flush "group::get_title_not_cached -group_id $group_id"
     return $object_type
 }
 
@@ -203,10 +184,9 @@ ad_proc -public group::get {
 } {
     upvar 1 $array row
     db_1row group_info {
-        select group_name, title, join_policy
-        from   groups g, acs_objects o
+        select group_name, join_policy
+        from   groups
         where  group_id = :group_id
-	and object_id = :group_id
     } -column_array row
 }
 
@@ -220,113 +200,6 @@ ad_proc -public group::get_element {
 } {
     group::get -group_id $group_id -array row
     return $row($element)
-}
-
-ad_proc -public group::get_id {
-    {-group_name:required}
-    {-subsite_id ""}
-    {-application_group_id ""}
-} {
-    Retrieve the group_id to a given group-name. If you have more than one group with this name, it will return the first one it finds.
-    Keep that in mind when using this procedure.
-
-    @author Christian Langmann (C_Langmann@gmx.de)
-    @author Malte Sussdorff (openacs@sussdorff.de)
-    @creation-date 2005-06-09
-
-    @param group_name the name of the group to look for
-    @param subsite_id the ID of the subsite to search for the group name
-    @param application_group_id the ID of the application group to search for the group name
-
-    @return the first group_id of the groups found for that group_name.
-
-    @error
-} {
-    return [util_memoize [list group::get_id_not_cached -group_name $group_name -subsite_id $subsite_id -application_group_id ""]]
-}
-
-ad_proc -private group::get_id_not_cached {
-    {-group_name:required}
-    {-subsite_id ""}
-    {-application_group_id ""}
-} {
-    Retrieve the group_id to a given group-name.
-
-    @author Christian Langmann (C_Langmann@gmx.de)
-    @author Malte Sussdorff (openacs@sussdorff.de)
-    @creation-date 2005-06-09
-
-    @param group_name the name of the group to look for
-
-    @return the id of the group
-
-    @error
-} {
-    if {[exists_and_not_null subsite_id]} {
-	set application_group_id [application_group::group_id_from_package_id -package_id [ad_conn subsite_id]]
-    } 
-    
-    if {[exists_and_not_null application_group_id]} {
-	set group_ids [db_list get_group_id_with_application {}]
-    } else {
-	set group_ids [db_list get_group_id {}]
-    }
-    return [lindex $group_ids 0]
-}
-
-ad_proc -public group::get_members {
-    {-group_id:required}
-    {-type "party"}
-} {
-    Get party_ids of all members from cache.
-
-    @param type Type of members - party, person, user
-
-    @see group::get_members_not_cached
-    @see group::flush_members_cache
-
-    @author Timo Hentschel (timo@timohentschel.de)
-    @creation-date 2005-07-26
-} {
-    return [util_memoize [list group::get_members_not_cached -group_id $group_id -type $type]]
-}
-
-ad_proc -private group::get_members_not_cached {
-    {-group_id:required}
-    {-type:required}
-} {
-    Get party_ids of all members.
-
-    @param type Type of members - party, person, user
-
-    @see group::get_members
-    @see group::flush_members_cache
-
-    @author Timo Hentschel (timo@timohentschel.de)
-    @creation-date 2005-07-26
-} {
-    switch $type {
-	party  { set member_list [db_list group_members_party {}] }
-	default { set member_list [db_list group_members {}] }
-    }
-
-    return $member_list
-}
-
-ad_proc -private group::flush_members_cache {
-    {-group_id:required}
-} {
-    Flush group members cache.
-
-    @see group::get_members
-    @see group::get_members_not_cached
-
-    @author Timo Hentschel (timo@timohentschel.de)
-    @creation-date 2005-07-26
-} {
-    util_memoize_flush "group::get_members_not_cached -group_id $group_id -type party"
-    util_memoize_flush "group::get_members_not_cached -group_id $group_id -type user"
-    util_memoize_flush "group::get_members_not_cached -group_id $group_id -type person"
 }
 
 ad_proc -public group::permission_p { 
@@ -399,13 +272,11 @@ ad_proc -public group::update {
     "
 
     if {[info exists group_name]} {
-	set pretty_name [lang::util::convert_to_i18n -message_key "group_title.${group_id}" -text "$group_name"]
 	db_dml update_object_title {
 	    update acs_objects
-	    set title = :pretty_name
+	    set title = :group_name
 	    where object_id = :group_id
 	}
-	util_memoize_flush "group::get_title_not_cached -group_id $group_id"
     }
 }
 
@@ -616,7 +487,6 @@ ad_proc -public group::add_member {
     }
     
     relation_add -member_state $member_state $rel_type $group_id $user_id
-    flush_members_cache -group_id $group_id
 }
 
 
@@ -642,37 +512,4 @@ ad_proc -public group::remove_member {
             relation_remove $rel_id
         }
     }
-
-    flush_members_cache -group_id $group_id
-}
-
-ad_proc -public group::title {
-    {-group_name ""}
-    {-group_id ""}
-} {
-    Get the title of a group, cached
-    Use either the group_id or the group_name
-
-    @param group_id The group_id of the group
-    @param group_name The name of the group. Note this is not the I18N title we want to retrieve with this procedure
-} {
-    if {![empty_string_p $group_name]} {
-	set group_id [group::get_id -group_name $group_name]
-    } 
-
-    if {![empty_string_p $group_id]} {
-	return [util_memoize [list group::title_not_cached -group_id $group_id]]
-    } else {
-	return ""
-    }
-}
-
-ad_proc -private group::title_not_cached {
-    {-group_id ""}
-} {
-    Get the title of a group, not cached
-
-    @param group_id The group_id of the group
-} {
-    return [group::get_element -group_id $group_id -element "title"]
 }

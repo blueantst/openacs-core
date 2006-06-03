@@ -69,30 +69,26 @@ ad_proc -public cr_write_content {
         file {
             set path [cr_fs_path $storage_area_key]
             set filename [db_string write_file_content ""]
-	    if {[empty_string_p $filename]} {
-		ad_return -code error "No content for the revision $revision_id. This seems to be an error which occured during the upload of the file"
+            if { $string_p } {
+		set fd [open $filename "r"]
+		set text [read $fd]
+		close $fd
+		return $text
 	    } else {
-		if { $string_p } {
-		    set fd [open $filename "r"]
-		    set text [read $fd]
-		    close $fd
-		    return $text
-		} else {
-		    # JCD: for webdavfs there needs to be a content-length 0 header 
-		    # but ns_returnfile does not send one.   Also, we need to 
-		    # ns_return size 0 files since if fastpath is enabled ns_returnfile 
-		    # simply closes the connection rather than send anything (including 
-		    # any headers).  This bug is fixed in AOLServer 4.0.6 and later
-		    # but work around it for now.
-		    set size [file size $filename]
-		    if {!$size} { 
-			ns_set put [ns_conn outputheaders] "Content-Length" 0
-			ns_return 200 text/plain {}
-		    } else {
-			ns_returnfile 200 $mime_type $filename
-		    }
-		}
-	    }
+                # JCD: for webdavfs there needs to be a content-length 0 header 
+                # but ns_returnfile does not send one.   Also, we need to 
+                # ns_return size 0 files since if fastpath is enabled ns_returnfile 
+                # simply closes the connection rather than send anything (including 
+                # any headers).  This bug is fixed in AOLServer 4.0.6 and later
+                # but work around it for now.
+                set size [file size $filename]
+                if {!$size} { 
+                    ns_set put [ns_conn outputheaders] "Content-Length" 0
+                    ns_return 200 text/plain {}
+                } else {
+                    ns_returnfile 200 $mime_type $filename
+                }
+            }
         }
         lob  {
 
@@ -194,23 +190,17 @@ ad_proc -public cr_import_content {
         set item_id [db_nextval acs_object_id_seq]
     }
 
-    # use content_type of existing item 
+    # use content_type of existing item
     if $old_item_p {
 	set content_type [db_string get_content_type ""]
     } else {
-        # all we really need to know is if the mime type is mapped to image, we
-        # actually use the passed in image_type or other_type to create the object
-        if {[db_string image_type_p "" -default 0]} {
-            set content_type image
-        } else {
-            set content_type content_revision
-        }
+	set content_type [cr_registered_type_for_mime_type $mime_type]
     }
     set revision_id [db_nextval acs_object_id_seq]
 
     db_transaction {
 
-        if { [empty_string_p [db_string is_registered "" -default ""]] } {
+        if { [empty_string_p [cr_registered_type_for_mime_type $mime_type]] } {
             db_dml mime_type_insert ""
             db_exec_plsql mime_type_register ""
         }

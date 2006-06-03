@@ -12,16 +12,13 @@ ad_proc -public application_link::new {
     -this_package_id:required
     -target_package_id:required
 } {
-    if {[catch {ad_conn user_id} user_id]} {
-	set user_id 0
-    }
-    
-    if {[catch {ad_conn peeraddr} id_addr]} {
-	set id_addr 127.0.0.1
-    }
+    set user_id [ad_conn user_id]
+    set id_addr [ad_conn peeraddr]
 
-    db_exec_plsql create_forward_link {}
+    set result [db_exec_plsql create_forward_link {}]
     db_exec_plsql create_backward_link {}
+
+    return $result
 }
 
 ad_proc -public application_link::delete_links {
@@ -48,15 +45,47 @@ ad_proc -public application_link::get_linked {
 }
 
 ad_proc -private ::install::xml::action::application-link { node } {
-    Create a forum instance from an install.xml file
+    Create an application link:
+
+    <p>&lt;application-link from-package-id=&quot;<em>from-package-id</em>&quot; to-package-id=&quot;<em>to-package-id</em>&quot;/&gt;</p>
 } {
-    set this_package_url [apm_required_attribute_value $node this_package_url]
-    set target_package_url [apm_required_attribute_value $node target_package_url]
+    set id [apm_attribute_value -default "" $node id]
 
-    set this_package_id [site_node::get_element -url $this_package_url -element package_id]
-    set target_package_id [site_node::get_element -url $target_package_url -element package_id]
+    set this_package_url [apm_attribute_value \
+        -default "" \
+        $node \
+        this_package_url]
+    set target_package_url [apm_attribute_value \
+        -default "" \
+        $node \
+        target_package_url]
 
-    application_link::new -this_package_id $this_package_id -target_package_id $target_package_id
+    set from_package_id [apm_attribute_value -default "" $node from-package-id]
+    set to_package_id [apm_attribute_value -default "" $node to-package-id]
 
+    if {![string equal $this_package_url ""]} {
+        set this_package_id [site_node::get_element -url $this_package_url \
+            -element package_id]
+    } elseif {![string equal $from_package_id ""]} {
+        set this_package_id [install::xml::util::get_id $from_package_id]
+    } else {
+        error "application-link tag must specify either this_package_url or from-package-id"
+    }
+
+    if {![string equal $target_package_url ""]} {
+        set target_package_id [site_node::get_element -url $target_package_url \
+            -element package_id]
+    } elseif {![string equal $to_package_id ""]} {
+        set target_package_id [install::xml::util::get_id $to_package_id]
+    } else {
+        error "application-link tag must specify either target_package_url or to-package-id"
+    }
+
+    set link_id [application_link::new -this_package_id $this_package_id \
+        -target_package_id $target_package_id]
+ 
+    if {![string is space $id]} {
+        set ::install::xml::ids($id) $link_id
+    }
 }
 

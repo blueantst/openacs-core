@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="acs-kernel" package_version="5.2.0b5" locale="en_US" charset="ISO-8859-1">
+<message_catalog package_key="acs-kernel" package_version="5.2.0d9" locale="en_US" charset="ISO-8859-1">
 
-  <msg key="Administrators">Administratoren</msg>
+  <msg key="Administrator">Administrator</msg>
+  <msg key="Administrators">Administrators</msg>
   <msg key="authentication_authority">Authority</msg>
   <description key="authentication_authority">The identifying label for an authentication server, such as an  LDAP or RADIUS server.</description>
 
@@ -14,6 +15,7 @@
   <msg key="common_Administration">Administration</msg>
   <msg key="common_administration">administration</msg>
   <msg key="common_All">All</msg>
+  <msg key="common_Any">Any</msg>
   <msg key="common_Apply">Apply</msg>
   <msg key="common_apply">apply</msg>
   <msg key="common_Cancel">Cancel</msg>
@@ -24,7 +26,6 @@
   <msg key="common_closed">closed</msg>
   <msg key="common_Continue">Continue</msg>
   <msg key="common_continue">continue</msg>
-  <msg key="common_Copy">Copy</msg>
   <msg key="common_Default">Use Default</msg>
   <msg key="common_default">use default</msg>
   <msg key="common_Delete">Delete</msg>
@@ -74,28 +75,23 @@
   <msg key="common_Stop">Stop</msg>
   <msg key="common_stop">stop</msg>
   <msg key="common_Submit">Submit</msg>
-  <msg key="common_Title">Title</msg>
-  <msg key="common_Type">Type</msg>
   <msg key="common_Update">Update</msg>
   <msg key="common_update">update</msg>
   <msg key="common_View">View</msg>
   <msg key="common_view">view</msg>
   <msg key="common_Yes">Yes</msg>
   <msg key="common_yes">yes</msg>
-  <msg key="Default_Context">Default Context</msg>
   <msg key="Email_Address">Email Address</msg>
-  <msg key="First_Names">First Names</msg>
+  <msg key="Email_Addresses">Email Addresses</msg>
+  <msg key="First_Names">First Name(s)</msg>
   <msg key="Group">Group</msg>
+  <msg key="Group_name">Group Name</msg>
+  <msg key="Groups">Groups</msg>
   <msg key="Last_Name">Last Name</msg>
-  <msg key="lt_Administrator_Relatio">Administrator Relationship</msg>
-  <msg key="lt_Main_Site_Administrat">Main Site Administrators</msg>
-  <msg key="lt_Relational_Constraint">Relational Constraint</msg>
-  <msg key="lt_Relational_Constraint_1">Relational Constraints</msg>
-  <msg key="lt_Relational_Party_Segm">Relational Party Segment</msg>
-  <msg key="lt_Relational_Party_Segm_1">Relational Party Segments</msg>
-  <msg key="lt_Security_context_root">Security context root</msg>
-  <msg key="Main_Site">Main Site</msg>
-  <msg key="Main_Site_Members">Main Site Members</msg>
+  <msg key="Last_Names">Last Names</msg>
+  <msg key="lt_Administrator_Relatio">Administrator Relation</msg>
+  <msg key="lt_Administrator_Relatio_1">Administrator Relationships</msg>
+  <msg key="lt_Membership_Relationsh">Membership Relationships</msg>
   <msg key="Member_role_pretty_name">Member</msg>
   <msg key="member_role_pretty_name">member</msg>
   <msg key="Member_role_pretty_plural">Members</msg>
@@ -111,10 +107,15 @@
   <msg key="member_state_Rejected">Rejected</msg>
   <msg key="member_state_rejected">rejected</msg>
   <msg key="Membership_Relation">Membership Relation</msg>
+  <msg key="OpenACS_Local">OpenACS Local</msg>
+  <msg key="Parties">Parties</msg>
   <msg key="Party">Party</msg>
+  <msg key="People">People</msg>
   <msg key="Person">Person</msg>
   <msg key="Registered_Users">Registered Users</msg>
+  <msg key="registered_users">Registered Users</msg>
   <msg key="The_Public">The Public</msg>
+  <msg key="the_public">The Public</msg>
   <msg key="Unregistered">Unregistered</msg>
   <msg key="Unregistered_Visitor">Unregistered Visitor</msg>
   <msg key="URL">URL</msg>

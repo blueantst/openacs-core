@@ -68,7 +68,7 @@ ad_proc -public acs_object::get {
 } {
     Gets information about an acs_object.
 
-    Returns object_id, object_type, context_id, security_inherit_p, 
+    Returns object_id, package_id, object_type, context_id, security_inherit_p, 
     creation_user, creation_date_ansi, creation_ip, last_modified_ansi,
     modifying_user, modifying_ip, tree_sortkey,  object_name
 
@@ -96,3 +96,11 @@ ad_proc -public acs_object::get_element {
     return $row($element)
 }
 
+ad_proc -public acs_object::set_context_id {
+    {-object_id:required}
+    {-context_id:required}
+} {
+    Sets the context_id of the specified object.
+} {
+    db_dml update_context_id {}
+}

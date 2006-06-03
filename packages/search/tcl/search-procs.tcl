@@ -62,22 +62,29 @@ ad_proc -public search::dequeue {
     }
 }
 
+ad_proc -public search::is_guest_p {
+} {
+    Checks whether the logged-in user is a guest
+} {
+    set user_id [ad_conn user_id]
+    return [db_string get_is_guest_p {select dotlrn_privacy.guest_p(:user_id) from dual}]
+}
 
 ad_proc -public -callback search::action {
-    -action
-    -object_id
-    -datasource
-    -object_type
+     -action
+     -object_id
+     -datasource
+     -object_type
 } {
-    Do something with a search datasource Called by the indexer
-    after having created the datasource.
+     Do something with a search datasource Called by the indexer
+     after having created the datasource.
 
-    @param action UPDATE INSERT DELETE
-    @param datasource name of the datasource array
+     @param action UPDATE INSERT DELETE
+     @param datasource name of the datasource array
 
-    @return ignored
+     @return ignored
 
-    @author Jeff Davis (davis@xarg.net)
+     @author Jeff Davis (davis@xarg.net)
 } -
 
 
@@ -92,17 +99,23 @@ ad_proc -private search::indexer {} {
 
     set driver [ad_parameter -package_id [apm_package_id_from_key search] FtsEngineDriver]
 
-    if {[empty_string_p $driver]
-        || ! [acs_sc_binding_exists_p FtsEngineDriver $driver]} {
+    if { $driver eq ""
+         || (![callback::exists -callback search::index -impl $driver] && ! [acs_sc_binding_exists_p FtsEngineDriver $driver])} {
         # Nothing to do if no driver
         ns_log Debug "search::indexer: driver=$driver binding exists? [acs_sc_binding_exists_p FtsEngineDriver $driver]"
         return
     }
-
     # JCD: pull out the rows all at once so we release the handle
-    foreach row [db_list_of_lists search_observer_queue_entry {}] { 
+    foreach row [db_list_of_lists search_observer_queue_entry {}] {
+        nsv_incr search_static_variables item_counter
+        if {[nsv_get search_static_variables item_counter] > 1000} {
+            nsv_set search_static_variables item_counter 0
+            db_exec_plsql optimize_intermedia_index {begin
+                ctx_ddl.sync_index ('swi_index');
+                end;
+            }
+        }
         foreach {object_id event_date event} $row { break }
-
         array unset datasource
         switch -- $event {
             UPDATE -
@@ -110,20 +123,41 @@ ad_proc -private search::indexer {} {
                 # Don't bother reindexing if we've already inserted/updated this object in this run
                 if {![info exists seen($object_id)]} {
                     set object_type [acs_object_type $object_id]
-                    if {[acs_sc_binding_exists_p FtsContentProvider $object_type]} {
+		    ns_log notice "\n-----DB-----\n SEARCH INDEX object type = '${object_type}' \n------------\n "
+                    if {[callback::impl_exists -callback search::datasource -impl $object_type] \
+			    || [acs_sc_binding_exists_p FtsContentProvider $object_type]} {
                         array set datasource {mime {} storage_type {} keywords {}}
                         if {[catch {
-                            array set datasource  [acs_sc_call FtsContentProvider datasource [list $object_id] $object_type]
+                            # check if a callback exists, if not fall
+                            # back to service contract
+                            if {[callback::impl_exists -callback search::datasource -impl $object_type]} {
+				#ns_log notice "\n-----DB-----\n SEARCH INDEX callback datasource exists for object_type '${object_type}'\n------------\n "
+                                array set datasource [lindex [callback -impl $object_type search::datasource -object_id $object_id] 0]
+                            } else {
+                                array set datasource  [acs_sc_call FtsContentProvider datasource [list $object_id] $object_type]
+                            }
                             search::content_get txt $datasource(content) $datasource(mime) $datasource(storage_type)
 
+			    if {[callback::impl_exists -callback search::index -impl $driver]} {
+				if {![info exists datasource(package_id)]} {
+				    set datasource(package_id) ""
+				}
+				set datasource(community_id) [search::dotlrn::get_community_id -package_id $datasource(package_id)]
+				
+				if {![info exists datasource(relevant_date)]} {
+				    set datasource(relevant_date) ""
+				}
+				callback -impl $driver search::index -object_id $object_id -content $txt -title $datasource(title) -keywords $datasource(keywords) -package_id $datasource(package_id) -community_id $datasource(community_id) -relevant_date $datasource(relevant_date) -datasource datasource 
+			    } else {
                             acs_sc_call FtsEngineDriver \
                                 [ad_decode $event UPDATE update_index index] \
                                 [list $datasource(object_id) $txt $datasource(title) $datasource(keywords)] $driver
+			    }
                         } errMsg]} {
                             ns_log Error "search::indexer: error getting datasource for $object_id $object_type: $errMsg\n[ad_print_stack_trace]\n"
                         } else {
                             # call the action so other people who do indexey things have a hook
-                            callback -catch search::action \
+#                            callback -catch search::action \
                                 -action $event \
                                 -object_id $object_id \
                                 -datasource datasource \
@@ -197,7 +231,7 @@ ad_proc -private search::content_get {
             set data [db_blob_get get_lob_data {}]
         }
     }
-
+    
     search::content_filter txt data $mime
 }
 
@@ -216,6 +250,7 @@ ad_proc -private search::content_filter {
             set txt $data
         }
         default { 
+	    ns_log notice "\n-----\n DAVEB search::content_filter mime= '${mime}' \n ------ \n"
             error "invalid mime type in search::content_filter: $mime"
         }
     }
@@ -232,9 +267,9 @@ ad_proc -private search::choice_bar {
 
     foreach value $values {
         if {[string compare $default $value] == 0} {
-            lappend return_list "<font color=\"a90a08\"><strong>[lindex $items $count]</strong></font>"
+            lappend return_list "<font color=\"\#a90a08\"><strong>[lindex $items $count]</strong></font>"
         } else {
-            lappend return_list "<a href=\"[lindex $links $count]\"><font color=\"000000\">[lindex $items $count]</font></a>"
+            lappend return_list "<a href=\"[lindex $links $count]\"><font color=\"\#000000\">[lindex $items $count]</font></a>"
         }
 
         incr count
@@ -248,6 +283,7 @@ ad_proc -private search::choice_bar {
 
 }
 
+
 ad_proc -callback search::datasource {
     -object_id:required
 } {
@@ -256,18 +292,7 @@ ad_proc -callback search::datasource {
     the object_type for the object.
 } -
 
-
-ad_proc -callback search::index {
-    -object_id:required
-    -content:required
-    -title:required
-    -description
-    -keywords
-} {
-    This callback is invoked by the search indexer. It will dispatch
-    to the full text search engine. Additional optional paramters may
-    be added to support additional features of full text search engines.
-} -
+# define for all objects, not just search?
 
 ad_proc -callback search::search {
     -query:required
@@ -275,7 +300,9 @@ ad_proc -callback search::search {
     {-offset 0}
     {-limit 10}
     {-df ""}
-    {-dt ""}    
+    {-dt ""}
+    {-package_ids ""}
+    {-object_type ""}
 } {
     This callback is invoked when a search is to be performed. Query
     will be a list of lists. The first list is required and will be a
@@ -306,9 +333,61 @@ ad_proc -callback search::index {
     -content
     -title
     -keywords
+    -community_id
+    -relevant_date
+    {-description ""}
     {-datasource ""}
     {-package_id ""}    
 } {
     This callback is invoked from the search::indexer scheduled procedure
     to add an item to the index
 } -
+
+ad_proc -callback search::update_index {    
+    -object_id 
+    -content
+    -title
+    -keywords
+    -community_id
+    -relevant_date
+    {-description ""}
+    {-datasource ""}
+    {-package_id ""}    
+} {
+    This callback is invoked from the search::indexer scheduled procedure
+    to update an item already in the index
+} -
+
+ad_proc -callback search::summary {
+    -query
+    -text
+} {
+    This callback is invoked to return an HTML fragment highlighting the terms in query
+} - 
+
+ad_proc -callback search::driver_info {
+} {
+    This callback returns information about the search engine implementation
+} -
+
+# dotlrn specific procs
+
+namespace eval search::dotlrn {}
+
+ad_proc -public search::dotlrn::get_community_id {
+    -package_id
+} {
+    if dotlrn is installed find the package's community_id
+    
+    @param package_id Package to find community
+
+    @return dotLRN community_id. empty string if package_id is not under a dotlrn package instance
+} {
+    if {[apm_package_installed_p dotlrn]} {
+	set site_node [site_node::get_node_id_from_object_id -object_id $package_id]
+	set dotlrn_package_id [site_node::closest_ancestor_package -node_id $site_node -package_key dotlrn -include_self]
+	set community_id [db_string get_community_id {select community_id from dotlrn_communities_all where package_id=:dotlrn_package_id} -default [db_null]]
+	return $community_id
+    } 
+    return ""
+}

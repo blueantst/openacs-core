@@ -33,10 +33,4 @@
         </querytext>
     </fullquery>
 
-    <fullquery name="membership_rel::change_state.merge">
-        <querytext>
-            begin return membership_rel__merge(:rel_id); end;
-        </querytext>
-    </fullquery>
-
 </queryset>

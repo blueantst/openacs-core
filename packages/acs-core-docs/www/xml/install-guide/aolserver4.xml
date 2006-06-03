@@ -81,8 +81,9 @@ make install</action>
 [root aolserver]# <userinput>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co nspostgres</userinput>
 [root aolserver]# <userinput>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co nssha1</userinput>
 [root aolserver]# <userinput>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co -r v2_7 nsoracle</userinput>
-[root aolserver]# <userinput>wget http://www.tdom.org/files/tDOM-0.8.0.tar.gz</userinput>
-[root aolserver]# <userinput>tar xvfz tDOM-0.8.0.tar.gz</userinput>
+[root aolserver]# <userinput>wget http://www.tdom.org/tDOM-0.7.8.tar.gz</userinput>
+[root aolserver]# <userinput>tar xvfz tDOM-0.7.8.tar.gz</userinput>
+[root aolserver]# <userinput>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/tcllib co -r tcllib-1-8 tcllib</userinput>
 [root root]# 
 <action>cd /usr/local/src
 mkdir aolserver40r10
@@ -93,7 +94,8 @@ cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co nspostgre
 cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co nssha1
 cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/aolserver co -r v2_7 nsoracle
 wget http://www.tdom.org/files/tDOM-0.8.0.tar.gz
-tar xvfz tDOM-0.8.0.tar.gz</action></screen>
+tar xvfz tDOM-0.8.0.tar.gz
+cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/tcllib co -r tcllib-1-8 tcllib</action></screen>
     </listitem>
     <listitem id="aolserver4-install">
       <formalpara>
@@ -107,7 +109,6 @@ tar xvfz tDOM-0.8.0.tar.gz</action></screen>
 ./configure --prefix=/usr/local/aolserver40r10 --with-tcl=/usr/local/lib/
 make install
 </action></screen>
-      <para>If you are using gcc 4 or later, see <ulink url="http://openacs.org/forums/message-view?message_id=309814">http://openacs.org/forums/message-view?message_id=309814</ulink></para>
       <para>If this is the only version of AOLserver in use, or is the default version, create a symlink.  If not, then be sure to use <computeroutput>/usr/local/aolserver40r10</computeroutput> instead of <computeroutput>/usr/local/aolserver</computeroutput> in the steps below and check both scripts and makefiles to ensure they use the correct path.</para>
       <screen>[root aolserver]# <userinput>ln -s /usr/local/aolserver40r10 /usr/local/aolserver</userinput></screen>
     </listitem>
@@ -164,13 +165,20 @@ nspostgres.c:679: warning: passing arg 3 of `Tcl_DStringAppend' as signed due to
             </listitem>
             <listitem id="aolserver4-tdom-install">
               <para>Install tDOM</para>
-              <screen>[root nssha1]# <userinput>cd ../tDOM-0.8.0/unix</userinput></screen>
+              <screen>[root nssha1]# <userinput>cd ../tDOM-0.7.8/unix</userinput></screen>
               <para>Edit the <computeroutput>CONFIG</computeroutput> file. Uncomment the instructions meant for AOLserver 4, but edit it to look like this:</para>
               <screen>../configure --enable-threads --disable-tdomalloc
           --prefix=/usr/local/aolserver --with-tcl=/usr/local/lib</screen>
               <para>Note that the location of the Tcl library may vary on differnt platforms (e.g. for Debian 3.0: --with-tcl=/usr/lib/tcl8.4)</para>
               <para>Now you can compile and configure tDOM</para>
               <screen>[root unix]# <userinput>sh CONFIG</userinput>
+[root unix]# <userinput>make install</userinput></screen>
+            </listitem>
+            <listitem id="aolserver4-tcllib-install">
+              <para>Install TCLLIB</para>
+              <screen>[root nssha1]# <userinput>cd ../tcllib</userinput></screen>
+              <para>Configure and compile TCLLIB</para>
+              <screen>[root unix]# <userinput>./configure -prefix=/usr/local/aolserver40r10</userinput>
 [root unix]# <userinput>make install</userinput></screen>
             </listitem>
           </orderedlist>

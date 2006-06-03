@@ -51,6 +51,10 @@ set debug false
 set homedir                   /usr/local/aolserver
 set bindir                    [file dirname [ns_info nsd]] 
 
+
+set max_file_upload_mb        20
+set max_file_upload_min        5
+
 ###################################################################### 
 #
 # End of instance-specific settings 
@@ -240,8 +244,8 @@ ns_section ns/server/${server}/module/nssock
     ns_param   port               $httpport
 # setting maxinput higher than practical may leave the server vulnerable to resource DoS attacks
 # see http://www.panoptic.com/wiki/aolserver/166
-    ns_param   maxinput           [expr 20 * 1024 * 1024] ;# Maximum File Size for uploads in bytes
-    ns_param   recvwait           [expr 5 * 60] ;# Maximum request time in minutes
+    ns_param   maxinput           [expr {$max_file_upload_mb * 1024 * 1024}] ;# Maximum File Size for uploads in bytes
+    ns_param   recvwait           [expr {$max_file_upload_min * 60}] ;# Maximum request time in minutes
 
 
 #---------------------------------------------------------------------
@@ -387,7 +391,11 @@ if { [ns_info version] < 4} {
         # this is used by acs-tcl/tcl/security-procs.tcl to get the 
         # https port.
         ns_param ServerPort                $httpsport
-    
+    # setting maxinput higher than practical may leave the server vulnerable to resource DoS attacks
+    # see http://www.panoptic.com/wiki/aolserver/166
+    # must set maxinput for nsopenssl as well as nssock
+    ns_param   maxinput           [expr {$max_file_upload_mb * 1024 * 1024}] ;# Maximum File Size for uploads in bytes
+
     # We explicitly tell the server which SSL contexts to use as defaults when an
     # SSL context is not specified for a particular client or server SSL
     # connection. Driver connections do not use defaults; they must be explicitly
@@ -477,9 +485,9 @@ if { [ns_info version] < 4} {
         # following added per
         # http://www.mail-archive.com/aolserver@listserv.aol.com/msg07365.html
         # Maximum File Size for uploads:
-        ns_param   maxinput           [expr 5 * 1024 * 1024] ;# in bytes
+        ns_param   maxinput           [expr {$max_file_upload_mb * 1024 * 1024}] ;# in bytes
         # Maximum request time
-        ns_param   recvwait           [expr 5 * 60] ;# in minutes
+        ns_param   recvwait           [expr {$max_file_upload_min * 60}] ;# in minutes
 
 #    ns_section "ns/server/${server}/module/nsopenssl/ssldriver/admins"
     #    ns_param sslcontext            admins
@@ -525,8 +533,8 @@ ns_section ns/db/pools
     ns_param   pool3              "Pool 3"
 
 ns_section ns/db/pool/pool1
-    ns_param   maxidle            1000000000
-    ns_param   maxopen            1000000000
+    ns_param   maxidle            0
+    ns_param   maxopen            0
     ns_param   connections        5
     ns_param   verbose            $debug
     ns_param   extendedtableinfo  true
@@ -544,8 +552,8 @@ ns_section ns/db/pool/pool1
     } 
 
 ns_section ns/db/pool/pool2
-    ns_param   maxidle            1000000000
-    ns_param   maxopen            1000000000
+    ns_param   maxidle            0
+    ns_param   maxopen            0
     ns_param   connections        5
     ns_param   verbose            $debug
     ns_param   extendedtableinfo  true
@@ -563,8 +571,8 @@ ns_section ns/db/pool/pool2
     } 
 
 ns_section ns/db/pool/pool3
-    ns_param   maxidle            1000000000
-    ns_param   maxopen            1000000000
+    ns_param   maxidle            0
+    ns_param   maxopen            0
     ns_param   connections        5
     ns_param   verbose            $debug
     ns_param   extendedtableinfo  true

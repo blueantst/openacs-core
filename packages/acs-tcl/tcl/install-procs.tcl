@@ -168,6 +168,7 @@ ad_proc -public install::xml::action::mount { node } {
 
     # Remove double slashes
     regsub -all {//} $mount_point "/" mount_point
+    set mount_point [string trimright $mount_point " /"]
 
     if {[string is space $mount_point] ||
         [string equal $mount_point "/"]} {
@@ -309,19 +310,61 @@ ad_proc -public install::xml::action::mount-existing { node } {
     return $out
 }
 
+ad_proc -public install::xml::action::create-package { node } {
+    Create a relation type.
+} {
+    variable ::install::xml::ids
+
+    set id [apm_required_attribute_value $node id]
+    set package_key [apm_required_attribute_value $node package-key]
+    set instance_name [apm_attribute_value -default "" $node name]
+    set context_id [apm_attribute_value -default "" $node context-id]
+
+    if {[string equal $context_id ""]} {
+        set context_id [db_null]
+    } else {
+        set context_id [install::xml::util::get_id $context_id]
+    }
+
+    set package_id [apm_package_instance_new \
+        -instance_name $instance_name \
+        -package_key $package_key \
+        -context_id $context_id]
+
+    if {![string is space $id]} {
+        set ::install::xml::ids($id) $package_id
+    }
+
+    return $package_id
+}
+
 ad_proc -public install::xml::action::set-parameter { node } {
     Sets a package parameter.
 
-    <p>&lt;set-parameter name=&quot;<em>parameter</em>&quot; [ package=&quot;<em>package-key</em> | url=&quot;<em>package-url</em>&quot; ] value=&quot;<em>value</em>&quot; /&gt;</p>
+    <p>&lt;set-parameter name=&quot;<em>parameter</em>&quot; [ package=&quot;<em>package-key</em> | url=&quot;<em>package-url</em>&quot; ] type=&quot;<em>[id|literal]</em>&quot; value=&quot;<em>value</em>&quot; /&gt;</p>
 } { 
+    variable ::install::xml::ids
+
     set name [apm_required_attribute_value $node name]
     set value [apm_attribute_value -default {} $node value]
 
     set package_id [install::xml::object_id::package $node]
 
-    parameter::set_value -package_id $package_id \
-        -parameter $name \
-        -value $value
+    set type [apm_attribute_value -default "literal" $node type]
+
+    switch -- $type {
+      literal {
+        parameter::set_value -package_id $package_id \
+            -parameter $name \
+            -value $value
+
+      }
+      id {
+        parameter::set_value -package_id $package_id \
+            -parameter $name \
+            -value $ids($value)
+      }
+    }
 }
 
 ad_proc -public install::xml::action::set-parameter-default { node } {
@@ -516,6 +559,32 @@ ad_proc -public install::xml::action::add-subsite-member { node } {
             -group_id $group_id \
             -member_state $member_state
     }
+
+    return {}
+}
+
+ad_proc -public install::xml::action::relation-type { node } {
+    Create a relation type.
+} {
+    set rel_type [apm_required_attribute_value $node rel-type]
+    set pretty_name [apm_required_attribute_value $node pretty-name]
+    set pretty_plural [apm_required_attribute_value $node pretty-plural]
+    set object_type_one [apm_required_attribute_value $node object-type-one]
+    set min_n_rels_one [apm_required_attribute_value $node min-n-rels-one]
+    set max_n_rels_one [apm_attribute_value -default "" $node max-n-rels-one]
+    set object_type_two [apm_required_attribute_value $node object-type-two]
+    set min_n_rels_two [apm_required_attribute_value $node min-n-rels-two]
+    set max_n_rels_two [apm_attribute_value -default "" $node max-n-rels-two]
+
+    rel_types::new $rel_type \
+        $pretty_name \
+        $pretty_plural \
+        $object_type_one \
+        $min_n_rels_one \
+        $max_n_rels_one \
+        $object_type_two \
+        $min_n_rels_two \
+        $max_n_rels_two
 
     return {}
 }

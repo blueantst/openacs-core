@@ -157,7 +157,6 @@ as
 			   default null,
   creation_ip	in acs_objects.creation_ip%TYPE default null,
   context_id    in acs_objects.context_id%TYPE default null,
-  security_inherit_p in acs_objects.security_inherit_p%TYPE default 't',
   title		in acs_objects.title%TYPE default null,
   package_id    in acs_objects.package_id%TYPE default null
  ) return acs_objects.object_id%TYPE;
@@ -266,14 +265,13 @@ as
  function new (
   object_id	in acs_objects.object_id%TYPE default null,
   object_type	in acs_objects.object_type%TYPE
-			   default 'acs_object',
+		   default 'acs_object',
   creation_date	in acs_objects.creation_date%TYPE
-			   default sysdate,
+		   default sysdate,
   creation_user	in acs_objects.creation_user%TYPE
-			   default null,
+		   default null,
   creation_ip	in acs_objects.creation_ip%TYPE default null,
   context_id    in acs_objects.context_id%TYPE default null,
-  security_inherit_p in acs_objects.security_inherit_p%TYPE default 't',
   title		in acs_objects.title%TYPE default null,
   package_id    in acs_objects.package_id%TYPE default null
  )
@@ -2270,7 +2268,7 @@ is
 
   update acs_objects
   set title = group_name
-  where object_id = v_group_id;
+  were object_id = v_group_id;
 
 
   -- setup the permissible relationship types for this group

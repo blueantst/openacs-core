@@ -124,7 +124,7 @@ begin
     v_title := new__title;
   end if;
 
-  if new__package_id is null and v_parent_id != 0 then
+  if new__package_id is null then
     v_package_id := acs_object__package_id(content_item__get_root_folder(v_parent_id));
   else
     v_package_id := new__package_id;
@@ -2303,7 +2303,7 @@ begin
 
   if content_folder__is_folder(move__item_id) = ''t'' then
 
-    PERFORM content_folder__move(move__item_id, move__target_folder_id);
+    PERFORM content_folder__move(move__item_id, move__target_folder_id,move__name);
 
   elsif content_folder__is_folder(move__target_folder_id) = ''t'' then
    
@@ -2524,7 +2524,7 @@ begin
           end if;
         end if;
 
-        update cr_items set live_revision = v_new_live_revision_id, latest_revision = v_new_revision_id where item_id = v_item_id;
+        update cr_items set live_revision = v_new_live_revision, latest_revision = v_new_revision_id where item_id = v_item_id;
 
     end if;
 

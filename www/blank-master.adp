@@ -10,23 +10,7 @@
       <link rel="@header_links.rel@" type="@header_links.type@" href="@header_links.href@" media="@header_links.media@" />
     </multiple>
 
-    <if @acs_blank_master__xinha@ not nil>
-      <if @htmlarea_support:rowcount@ ne 0>
-       <script type="text/javascript">
-        _editor_url  = "/resources/acs-templating/xinha-nightly/"  // (preferably absolute)URL (including trailing slash) where Xinha is installed   
-        _editor_lang = "@lang@";
-       </script>
-       <script type="text/javascript" src="/resources/acs-templating/xinha-nightly/htmlarea.js" language="javascript"></script>
-      </if>
-    </if>
-
-    <if @acs_blank_master__rte@ not nil>
-      <if @acs_blank_master__htmlareas@ not nil>
-        <script language="JavaScript" type="text/javascript" 
-             src="/resources/acs-templating/rte/richtext.js">
-         </script>
-      </if>
-    </if>
+    <if @acs_blank_master__htmlareas@ not nil><script language="JavaScript" type="text/javascript" src="/resources/acs-templating/rte/richtext.js"></script></if>
 
     <script type="text/javascript" src="/resources/acs-subsite/core.js" language="javascript"></script>
 
@@ -34,6 +18,12 @@
   </head>
   <body<multiple name="attribute"> @attribute.key@="@attribute.value@"</multiple>>
   <textarea id="holdtext" style="display: none;" rows="1" cols="1"></textarea>
+  <if @acs_blank_master__htmlareas@ not nil>
+    <script language="JavaScript" type="text/javascript"><!--
+      //Usage: initRTE(imagesPath, includesPath, cssFile)
+      initRTE("/resources/acs-templating/rte/images/", "/resources/acs-templating/rte/", "/resources/acs-templating/rte/rte.css");
+      // --></script></if>
+
 
     <if @dotlrn_toolbar_p@ true>
       <include src="/packages/dotlrn/lib/toolbar">
@@ -41,54 +31,6 @@
     <if @developer_support_p@ true>
       <include src="/packages/acs-developer-support/lib/toolbar">
     </if>
-
-    <if @acs_blank_master__rte@ not nil>
-     <if @acs_blank_master__htmlareas@ not nil>
-       <script language="JavaScript" type="text/javascript"><!--
-           initRTE("/resources/acs-templating/rte/images/", "/resources/acs-templating/rte/", "/resources/acs-templating/rte/rte.css");
-      // -->
-       </script>
-     </if>
-  </if>
-
-  <if @acs_blank_master__xinha@ not nil>
-    <if @htmlarea_support:rowcount@ ne 0>
-      <script type="text/javascript">
-	xinha_editors = null;
-	xinha_init = null;
-	xinha_config = null;
-	xinha_plugins = null;
-	xinha_init = xinha_init ? xinha_init : function()
-	{
-	xinha_plugins = xinha_plugins ? xinha_plugins :
-	[
-	'GetHtml',
-	'CharacterMap',
-	'ContextMenu',
-	'FullScreen',
-	'ListType',
-	'TableOperations',
-	'EditTag',
-	'LangMarks',
-	'Abbreviation'
-	];
-	// THIS BIT OF JAVASCRIPT LOADS THE PLUGINS, NO TOUCHING  :)
-	if(!HTMLArea.loadPlugins(xinha_plugins, xinha_init)) return;
-	xinha_editors = xinha_editors ? xinha_editors :
-	[
-           <multiple name="htmlarea_support" delimiter=",">
-             '@htmlarea_support.id@'
-           </multiple>
-	];
-       xinha_config = xinha_config ? xinha_config() : new HTMLArea.Config();
-       xinha_config.height = '350px';
-       xinha_editors = HTMLArea.makeEditors(xinha_editors, xinha_config, xinha_plugins);
-       HTMLArea.startEditors(xinha_editors);
-    }
-    window.onload = xinha_init;
-    </script>
-   </if>
-  </if>
 
     <slave>
 

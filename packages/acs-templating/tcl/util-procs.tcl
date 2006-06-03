@@ -737,7 +737,7 @@ ad_proc -public template::util::tcl_to_sql_list { lst } {
 } {
 
     if { [llength $lst] > 0 } {
-        # regsub adds DoubleApos functionality for security reasons.
+        # adding DoubleApos functionality for security reasons.
         regsub -all -- ' "$lst" '' lst2
         set sql "'"
         append sql [join $lst2 "', '"]
@@ -747,6 +747,8 @@ ad_proc -public template::util::tcl_to_sql_list { lst } {
         return ""
     }
 }
+
+
 
 ad_proc -public template::get_resource_path {} {
     Get the template directory

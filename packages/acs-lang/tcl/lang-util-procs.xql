@@ -37,8 +37,8 @@
       <querytext>
        select label, locale
         from   ad_locales
+	order by label
       </querytext>
    </fullquery>
-
 
 </queryset>

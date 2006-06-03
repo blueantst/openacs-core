@@ -2,8 +2,6 @@
 
 ad_page_contract {
     
-    
-    
     @author Victor Guerra (guerra@galileo.edu)
     @creation-date 2005-02-03
     @arch-tag: 983f3d87-40c8-4327-8873-c6a01ba7d875
@@ -29,10 +27,11 @@ if {$user_id eq 0} {
     set public_userm_email $user_email
 }
 
+set send_email_p [parameter::get -package_id [ad_acs_kernel_id] -parameter SendErrorEmailP -default 0]
 set system_name [ad_system_name]
 set subject "[_ acs-tcl.lt_Error_Report_in_ad_sy] ( [_ acs-tcl.File ] $error_file )"
 set found_in_version ""
-set send_to [parameter::get -package_id [ad_acs_kernel_id] -parameter HostAdministrator -default "[ad_system_owner]"]
+set send_to [ad_admin_owner]
 
 set error_desc_email "
  --------------------------------------------------------<br>
@@ -43,6 +42,7 @@ set error_desc_email "
 <b>[_ acs-tcl.File]</b> $error_file<br>
 <b>[_ acs-tcl.User_Name]</b> $user_name<br>
 <b>[_ acs-tcl.lt_User_Id_of_the_user_t]</b> $user_id<br>
+<b>IP:</b> [ns_conn peeraddr]<br>
 <b>[_ acs-tcl.Browser_of_the_user]</b> [ad_quotehtml [ns_set get [ns_conn headers] User-Agent]]<br>
 <br>
 -----------------------------<br>
@@ -55,10 +55,8 @@ set error_desc_email "
 <br>
 [_ acs-tcl.lt_NB_This_error_was_sub]"
 
-if {[empty_string_p $bug_number] } {
-    if {[catch {ns_sendmail "$send_to" $public_userm_email $subject $error_desc_email} errmsg]} {
-        ns_log warning "ACS-TCL/lib/page-error failed to send mail to $send_to for $error_desc"
-    }
+if {[empty_string_p $bug_number] && $send_email_p} {
+    ns_sendmail "$send_to" $public_userm_email $subject $error_desc_email
 }
 set bt_instance [parameter::get -package_id [ad_acs_kernel_id] \
 		     -parameter BugTrackerInstance -default ""]
@@ -104,19 +102,6 @@ if {$auto_submit_p && $user_id > 0} {
 	    -user_id $user_id
 	
 	bug_tracker::bugs_exist_p_set_true -package_id $bt_package_id
-	
-	set workflow_id [bug_tracker::bug::get_instance_workflow_id -package_id $bt_package_id]
-	set case_id {}
-	set object_id [workflow::case::get_notification_object \
-			   -type workflow_my_cases \
-			   -workflow_id $workflow_id \
-			   -case_id $case_id]
-	set type_id [notification::type::get_type_id -short_name workflow_my_cases]
-	set delivery_method_id [notification::delivery::get_id -short_name email]
-	set interval_id [notification::interval::get_id_from_name -name instant]
-	
-	notification::request::new -type_id $type_id -user_id $user_id -object_id $object_id \
-	    -interval_id $interval_id -delivery_method_id $delivery_method_id
         db_dml insert_auto_bug { *SQL* }
     } else {
 	

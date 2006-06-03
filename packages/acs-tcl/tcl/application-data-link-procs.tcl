@@ -12,13 +12,8 @@ ad_proc -public application_data_link::new {
     -this_object_id:required
     -target_object_id:required
 } {
-    if {[catch {ad_conn user_id} user_id]} {
-	set user_id 0
-    }
-    
-    if {[catch {ad_conn peeraddr} id_addr]} {
-	set id_addr 127.0.0.1
-    }
+    set user_id [ad_conn user_id]
+    set id_addr [ad_conn peeraddr]
 
     db_exec_plsql create_forward_link {}
     db_exec_plsql create_backward_link {}
@@ -43,13 +38,6 @@ ad_proc -public application_data_link::get {
 ad_proc -public application_data_link::get_linked {
     -from_object_id:required
     -to_object_type:required
-} {
-    return [db_list linked_object {}]
-}
-
-ad_proc -public application_data_link::get_linked_content {
-    -from_object_id:required
-    -to_content_type:required
 } {
     return [db_list linked_object {}]
 }

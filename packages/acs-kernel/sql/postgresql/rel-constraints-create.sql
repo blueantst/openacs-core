@@ -22,8 +22,8 @@ returns integer as '
 begin
     PERFORM acs_object_type__create_type (
       ''rel_constraint'',
-      ''#acs-kernel.lt_Relational_Constraint#'',
-      ''#acs-kernel.lt_Relational_Constraint_1#'',
+      ''Relational Constraint'',
+      ''Relational Constraints'',
       ''acs_object'',
       ''rel_constraints'',
       ''constraint_id'',

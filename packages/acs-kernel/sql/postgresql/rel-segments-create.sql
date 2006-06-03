@@ -25,8 +25,8 @@ begin
  --
  PERFORM acs_object_type__create_type (
    ''rel_segment'',
-   ''#acs-kernel.lt_Relational_Party_Segm#'',
-   ''#acs-kernel.lt_Relational_Party_Segm_1#'',
+   ''Relational Party Segment'',
+   ''Relational Party Segments'',
    ''party'',
    ''rel_segments'',
    ''segment_id'',

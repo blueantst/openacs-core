@@ -31,15 +31,4 @@
     </querytext>
 </fullquery>
 
-<fullquery name="application_data_link::get_linked_content.linked_object">
-    <querytext>
-	select i.item_id
-	from acs_rels r, cr_items i
-	where r.object_id_one = :from_object_id
-	and r.object_id_two = i.item_id
-	and i.content_type = :to_content_type
-	and r.rel_type = 'application_data_link'
-    </querytext>
-</fullquery>
-
 </queryset>

@@ -155,8 +155,8 @@ ad_proc -public ::content::folder::unregister_content_type {
 }
 
 ad_proc -public ::content::folder::update {
-    -folder_id:required
-    -attributes:required
+    folder_id:required
+    attributes:required
 } {
     Update standard cr_folder attributes, including the attributes for
     the folder cr_item
@@ -174,7 +174,6 @@ ad_proc -public ::content::folder::update {
 } {
     set valid_attributes [list label description package_id]
 
-    set update_text "" 
     set item_attributes $attributes
     set i 0 
     foreach {attribute value} $attributes {
@@ -196,13 +195,13 @@ ad_proc -public ::content::folder::update {
 
 	# we have valid attributes, update them
 
-	set query_text "update cr_folders set ${update_text} where folder_id=:folder_id"
+	set query_text "update cr_folders set ${update_text}  where folder_id=:folder_id"
 	db_dml item_update $query_text
     }
 
     # pass the rest of the attributes to content::item::set
     # we can just send the folder attributes because they don't overlap
-    content::item::update \
+    content::item::set \
 	-item_id $folder_id \
 	-attributes $attributes
 }
@@ -216,9 +215,9 @@ ad_proc -public content::folder::get_index_page {
     @return item_id of content item named "index" in folder_id
 } {
     return [package_exec_plsql \
-		-var_list [list [list \
+		-var_list [list \
 			       folder_id $folder_id \
-				    ]] \
+			      ] \
 		content_folder get_index_page]
 }
 
@@ -232,7 +231,7 @@ ad_proc -public content::folder::get_label {
 } {
     return [package_exec_plsql \
 		-var_list [list \
-			       [list folder_id $folder_id] \
+			       folder_id $folder_id \
 			      ] \
 		content_folder get_label]
 }
@@ -261,7 +260,7 @@ ad_proc -public content::folder::is_folder {
     @return t or f
 } {
     return [package_exec_plsql -var_list [list \
-           [list item_id $item_id] \
+        item_id $item_id \
     ] content_folder is_folder]
 }
 
@@ -279,9 +278,9 @@ ad_proc -public content::folder::is_registered {
 } {
     return [package_exec_plsql \
 		-var_list [list \
-			       [list folder_id $folder_id] \
-			       [list content_type $content_type] \
-                               [list include_subtypes $include_subtypes] \
+			       folder_id $folder_id \
+			       content_type $content_type \
+			       include_subtypes $include_subtypes \
 			      ] \
 		content_folder is_registered]
 }
@@ -295,7 +294,7 @@ ad_proc -public content::folder::is_root {
     @return t or f
 } {
     return [package_exec_plsql -var_list [list \
-                                              [list folder_id $folder_id] \
+        folder_id $folder_id \
     ] content_folder is_root]
 }
 

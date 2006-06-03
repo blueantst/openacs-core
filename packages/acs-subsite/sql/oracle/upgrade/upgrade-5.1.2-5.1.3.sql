@@ -11,9 +11,8 @@ create table site_nodes_selection (
                         references acs_objects (object_id)
                         constraint site_node_sel_id_pk
                         primary key,
-	view_p		char(1)
-                constraint site_nodes_sel_view_p_ck
-                check (view_p in ('t','f'))
+	view_p		boolean
+
 );
 
 --show errors
