@@ -2,76 +2,57 @@
  * $Id$
  *
  * @author Moxiecode
- * @copyright Copyright © 2004-2007, Moxiecode Systems AB, All rights reserved.
+ * @copyright Copyright © 2004-2008, Moxiecode Systems AB, All rights reserved.
  */
 
-/* Import plugin specific language pack */
-tinyMCE.importPluginLanguagePack('oacslink');
+(function() {
+	tinymce.create('tinymce.plugins.OacsLinkPlugin', {
+		init : function(ed, url) {
+			this.editor = ed;
 
-var TinyMCE_OacsLinkPlugin = {
-        getInfo : function() {
-                return {
-                        longname : 'OACS Advanced link',
-                        author : 'SolutionGrove & Moxiecode Systems AB',
-                        authorurl : 'http://tinymce.moxiecode.com',
-                        infourl : 'http://tinymce.moxiecode.com/tinymce/docs/plugin_oacslink.html',
-                        version : tinyMCE.majorVersion + "." + tinyMCE.minorVersion
-                };
-        },
+			// Register commands
+			ed.addCommand('mceOacsLink', function() {
+				var se = ed.selection;
 
-        initInstance : function(inst) {
-                inst.addShortcut('ctrl', 'k', 'lang_oacslink_desc', 'mceOacslink');
-        },
+				// No selection and not in link
+				if (se.isCollapsed() && !ed.dom.getParent(se.getNode(), 'A'))
+					return;
 
-        getControlHTML : function(cn) {
-                switch (cn) {
-                        case "oacslink":
-                                return tinyMCE.getButtonHTML(cn, 'lang_oacslink_desc', '/resources/acs-templating/tinymce/jscripts/tiny_mce/plugins/oacslink/images/attach.png', 'mceOacslink');
-                }
-                return "";
-        },
+				ed.windowManager.open({
+					file : '/acs-templating/scripts/xinha/attach-file',
+					width : 480 + parseInt(ed.getLang('oacslink.delta_width', 0)),
+					height : 400 + parseInt(ed.getLang('oacslink.delta_height', 0)),
+					inline : 1
+				}, {
+					plugin_url : url
+				});
+			});
+			// Register buttons
+			ed.addButton('oacslink', {
+				title : 'oacslink.link_desc',
+				         cmd : 'mceOacsLink',
+                                         image: ed.baseURI.path + '/plugins/oacslink/img/attach.png'
+			});
 
-        execCommand : function(editor_id, element, command, user_interface, value) {
-                switch (command) {
-                        case "mceOacslink":
-                                var anySelection = true;
-                                var inst = tinyMCE.getInstanceById(editor_id);
-                                var focusElm = inst.getFocusElement();
-                                var selectedText = inst.selection.getSelectedText();
+			ed.addShortcut('ctrl+k', 'oacslink.oacslink_desc', 'mceOacsLink');
 
-                                // anySelection = (tinyMCE.selectedElement.nodeName.toLowerCase() == "img") || (selectedText && selectedText.length > 0);
+			ed.onNodeChange.add(function(ed, cm, n, co) {
+				cm.setDisabled('link', co && n.nodeName != 'A');
+				cm.setActive('link', n.nodeName == 'A' && !n.name);
+			});
+		},
 
-                                // if (anySelection || (focusElm != null && focusElm.nodeName == "A")) {
-                                        var template = new Array();
+		getInfo : function() {
+			return {
+				longname : 'Oacs link',
+				author : 'Moxiecode Systems AB',
+				authorurl : 'http://tinymce.moxiecode.com',
+				infourl : 'http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/oacslink',
+				version : tinymce.majorVersion + "." + tinymce.minorVersion
+			};
+		}
+	});
 
-                                        template['file']   = '/acs-templating/scripts/xinha/attach-file';
-                                        template['width']  = 500;
-                                        template['height'] = 400;
-
-                                        tinyMCE.openWindow(template, {editor_id : editor_id, inline : "yes"});
-
-								// }
-                                return true;
-				}
-                	    
-                return false;
-        },
-
-        handleNodeChange : function(editor_id, node, undo_index, undo_levels, visual_aid, any_selection) {
-                if (node == null)
-                        return;
-
-                do {
-                        if (node.nodeName == "A" && tinyMCE.getAttrib(node, 'href') != "") {
-                                tinyMCE.switchClass(editor_id + '_link', 'mceButtonSelected');
-                                return true;
-                        }
-                } while ((node = node.parentNode));
-
-                tinyMCE.switchClass(editor_id + '_link', 'mceButtonNormal');
-
-                return true;
-        }
-};
-
-tinyMCE.addPlugin("oacslink", TinyMCE_OacsLinkPlugin);
+	// Register plugin
+	tinymce.PluginManager.add('oacslink', tinymce.plugins.OacsLinkPlugin);
+})();

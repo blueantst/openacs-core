@@ -90,39 +90,17 @@
 
 <fullquery name="person::get_bio.select_bio">      
       <querytext>
-          select attr_value as bio
-          from acs_attribute_values
-          where object_id = :person_id
-          and attribute_id =
-             (select attribute_id
-              from acs_attributes
-              where object_type = 'person'
-              and attribute_name = 'bio')
-      </querytext>
-</fullquery>
-
-<fullquery name="person::update_bio.insert_bio">      
-      <querytext>
-        insert into acs_attribute_values
-	(object_id, attribute_id, attr_value)
-	values 
-	(:person_id, (select attribute_id
-          from acs_attributes
-          where object_type = 'person'
-          and attribute_name = 'bio'), :bio)
+          select bio
+          from persons
+          where person_id = :person_id
       </querytext>
 </fullquery>
 
 <fullquery name="person::update_bio.update_bio">      
       <querytext>
-        update acs_attribute_values
-	set attr_value = :bio
-	where object_id = :person_id
-	and attribute_id =
-          (select attribute_id
-          from acs_attributes
-          where object_type = 'person'
-          and attribute_name = 'bio')
+        update persons
+	set bio = :bio
+	where person_id = :user_id
       </querytext>
 </fullquery>
 

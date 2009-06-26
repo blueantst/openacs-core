@@ -230,6 +230,53 @@ begin
    null
    );
 
+ attr_id := acs_attribute__create_attribute (
+        ''user'',
+        ''username'',
+        ''string'',
+        ''#acs-kernel.Username#'',
+        ''#acs-kernel.Usernames#'',
+        null,
+        null,
+        null,
+	0,
+	1,
+        null,
+        ''type_specific'',
+        ''f''
+      );
+
+ attr_id := acs_attribute__create_attribute (
+        ''user'',
+        ''screen_name'',
+        ''string'',
+        ''#acs-kernel.Screen_Name#'',
+        ''#acs-kernel.Screen_Names#'',
+        null,
+        null,
+        null,
+	0,
+	1,
+        null,
+        ''type_specific'',
+        ''f''
+      );
+
+ attr_id := acs_attribute__create_attribute (
+        ''person'',
+        ''bio'',
+        ''string'',
+        ''#acs-kernel.Bio#'',
+        ''#acs-kernel.Bios#'',
+        null,
+        null,
+        null,
+	0,
+	1,
+        null,
+        ''type_specific'',
+        ''f''
+      );
 
   return 0;
 end;' language 'plpgsql';
@@ -344,7 +391,8 @@ create table persons (
 			references parties (party_id)
 			constraint persons_person_id_pk primary key,
 	first_names	varchar(100) not null,
-	last_name	varchar(100) not null
+	last_name	varchar(100) not null,
+        bio             text
 );
 
 comment on table persons is '

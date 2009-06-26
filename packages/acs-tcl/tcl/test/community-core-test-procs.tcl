@@ -69,9 +69,6 @@ aa_register_case \
 		
 		aa_true "party is a person" [person::person_p -party_id $user_id]
 
-		#person::delete -person_id $user_info(user_id)
-		#aa_true "person was deleted" [![person::person_p -party_id $user_id]]
-		
 		array set user_inf [person::get -person_id $user_info(user_id)]
 	
 		aa_true "first_names correct" [string match $user_inf(first_names) $first_names]
@@ -93,7 +90,6 @@ aa_register_case \
 		
 		person::delete -person_id $prs_id
                 aa_true "person deleted" ![person::person_p -party_id $prs_id]
-
 
 	    }
     }

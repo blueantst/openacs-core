@@ -250,16 +250,23 @@ ad_proc -public person::update {
     name_flush -person_id $person_id
 }
 
+# DRB: Though I've moved the bio field to type specific rather than generic storage, I've
+# maintained the API semantics exactly as they were before mostly in order to make upgrade
+# possible.  In the future, the number of database hits can be diminished by getting rid of
+# the seperate queries for bio stuff. However, I have removed bio_mime_type because it's
+# unused and unsupported in the existing code.
+
 ad_proc -public person::get_bio {
     {-person_id {}}
     {-exists_var {}}
 } {
     Get the value of the user's bio(graphy) field.
 
-    @option person_id    The person_id of the person to get the bio for. Leave blank for currently logged in user.
+    @option person_id    The person_id of the person to get the bio for. Leave blank for
+       currently logged in user.
     
     @option exists_var The name of a variable in the caller's namespace, which will be set to 1 
-                       if a bio was found, or 0 if no bio was found. Leave blank if you're not
+                       if the bio column is not null.  Leave blank if you're not
                        interested in this information.
     
     @return The bio of the user as a text string.
@@ -274,11 +281,9 @@ ad_proc -public person::get_bio {
         upvar $exists_var exists_p
     }
 
-    set exists_p [db_0or1row select_bio {}]
+    db_1row select_bio {}
     
-    if { !$exists_p } {
-        set bio {}
-    }
+    set exists_p [expr {$bio ne ""}]
     
     return $bio
 }
@@ -294,33 +299,7 @@ ad_proc -public person::update_bio {
 
     @author Lars Pind (lars@collaboraid.biz)
 } {
-    # This will set exists_p to whether or not a row for the bio existed
-    set bio_old [get_bio -person_id $person_id -exists_var exists_p]
-
-    # bio_change_to = 0 -> insert
-    # bio_change_to = 1 -> don't change
-    # bio_change_to = 2 -> update
-
-    if { !$exists_p } {
-        # There is no bio yet.
-        # If new bio is empty, that's a don't change (1)
-        # If new bio is non-empty, that's an insert (0)
-        set bio_change_to [expr {$bio eq ""}]
-    } else {
-        if {$bio eq $bio_old} {
-            set bio_change_to 1
-        } else {
-            set bio_change_to 2
-        }
-    }
-    
-    if { $bio_change_to == 0 } {
-	# perform the insert
-	db_dml insert_bio {}
-    } elseif { $bio_change_to == 2 } {
-	# perform the update
-	db_dml update_bio {}
-    }
+    db_dml update_bio {}
 }
 
 
