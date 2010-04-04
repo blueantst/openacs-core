@@ -47,10 +47,9 @@
 	    begin
 	    :1 := apm.register_parameter(
 					 parameter_id => :parameter_id,
-					 package_key => :package_key,
 					 parameter_name => :parameter_name,
+					 package_key => :package_key,
 					 description => :description,
-                                         scope => :scope,
 					 datatype => :datatype,
 					 default_value => :default_value,
 					 section_name => :section_name,
@@ -62,13 +61,6 @@
       </querytext>
 </fullquery>
 
-<fullquery name="apm_parameter_unregister.unregister">
-  <querytext>
-    begin
-      apm.unregister_parameter(:parameter_id);
-    end;
-  </querytext>
-</fullquery>
  
 <fullquery name="apm_parameter_register.apm_parameter_cache_update">      
       <querytext>

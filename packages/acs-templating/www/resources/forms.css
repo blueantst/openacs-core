@@ -7,19 +7,11 @@
 	font-weight: bold;
 }
 
+/* form layout for forms with divs*/
+
 .form-fieldset {
 	border: 0px solid #000;
 }
-
-.form-legend {
-    font-weight: bold;
-}
-
-legend span { 
-    display: block;
-}
-
-/* form layout for forms with divs */
 
 .margin-form .form-required-mark {
     display: inline;
@@ -51,6 +43,10 @@ legend span {
 	margin-left: 17em;
 }
 
+.margin-form legend span { 
+    display: block;
+}
+
 .vertical-form .form-required-mark {
     display: inline;
 }
@@ -60,7 +56,7 @@ legend span {
 	padding: 8px;
 }	
 
-.vertical-form .form-item-wrapper .form-label {
+.vertical-form .form-item-wrapper .form-label{
 	text-align: left;
 	display: block;
 

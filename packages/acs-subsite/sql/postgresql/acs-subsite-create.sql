@@ -7,6 +7,7 @@
 -- @cvs-id $Id$
 --
 
+\i attribute.sql
 \i portraits.sql
 \i email-image.sql
 \i application-groups-create.sql

@@ -130,7 +130,7 @@ ad_proc -private apm_generate_package_spec { version_id } {
     append spec "\n        <parameters>\n"
     apm_log APMDebug "APM: Writing parameters"
     db_foreach parameter_info {} {
-	append spec "            <parameter scope=\"[ad_quotehtml $scope]\" datatype=\"[ad_quotehtml $datatype]\" \
+	append spec "            <parameter datatype=\"[ad_quotehtml $datatype]\" \
 		min_n_values=\"[ad_quotehtml $min_n_values]\" \
 		max_n_values=\"[ad_quotehtml $max_n_values]\" \
 		name=\"[ad_quotehtml $parameter_name]\" "
@@ -169,8 +169,7 @@ ad_proc -public apm_read_package_info_file { path } {
     <ul>
     <li><code>path</code>: a path to the file read
     <li><code>mtime</code>: the mtime of the file read
-    <li><code>provides</code>, <code>embeds</code>, <code>extends</code>,
-      and <code>requires</code>: <p>
+    <li><code>provides</code>, <code>extends</code>, and <code>requires</code>:
       lists of dependency information, containing elements of the form
       <code>[list $url $version]</code>
     <li><code>owners</code>: a list of owners containing elements of the form
@@ -312,10 +311,9 @@ ad_proc -public apm_read_package_info_file { path } {
 
     set properties(provides) [list]
     set properties(requires) [list]
-    set properties(embeds) [list]
     set properties(extends) [list]
 
-    foreach dependency_type { provides requires embeds extends } {
+    foreach dependency_type { provides requires extends } {
 	set dependency_types [xml_node_get_children_by_name $version $dependency_type]
 
 	foreach node $dependency_types {
@@ -394,14 +392,9 @@ ad_proc -public apm_read_package_info_file { path } {
 	    set section_name [apm_attribute_value $parameter_node section_name]
 	    set datatype [apm_attribute_value $parameter_node datatype]
 	    set name [apm_attribute_value $parameter_node name]
-	    set scope [apm_attribute_value $parameter_node scope]
-
-            if { $scope eq "" } {
-                set scope instance
-            }
 
 	    apm_log APMDebug "APM: Reading parameter $name with default $default_value"
-	    lappend properties(parameters) [list $name $description $section_name $scope $datatype $min_n_values $max_n_values $default_value]
+	    lappend properties(parameters) [list $name $description $section_name $datatype $min_n_values $max_n_values $default_value]
 	}
     }
     

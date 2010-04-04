@@ -205,21 +205,20 @@ ad_proc -public person::name {
     get the name of a person. Cached.
 } {
     if {$person_id eq "" && $email eq ""} {
-        error "You need to provide either person_id or email"
+	error "You need to provide either person_id or email"
     } elseif {"" ne $person_id && "" ne $email } {
-        error "Only provide provide person_id OR email, not both"
+	error "Only provide provide person_id OR email, not both"
     } else {
-        return [util_memoize [list person::name_not_cached -person_id $person_id -email $email]]
+	return [util_memoize [list person::name_not_cached -person_id $person_id -email $email]]
     }
 }
 
 ad_proc -public person::name_flush {
     {-person_id:required}
-    {-email ""}
 } {
     Flush the person::name cache.
 } {
-    util_memoize_flush [list person::name_not_cached -person_id $person_id -email $email]
+    util_memoize_flush [list person::name_not_cached -person_id $person_id]
     acs_user::flush_cache -user_id $person_id
 }
 
@@ -230,11 +229,11 @@ ad_proc -public person::name_not_cached {
     get the name of a person
 } {
     if {$email eq ""} {
-        db_1row get_person_name {}
+	db_1row get_person_name {}
     } else {
-        # As the old functionality returned an error, but I want an empty string for e-mail
-        # Therefore for emails we use db_string
-        set person_name [db_string get_party_name {} -default ""]
+	# As the old functionality returned an error, but I want an empty string for e-mail
+	# Therefore for emails we use db_string
+	set person_name [db_string get_party_name {} -default ""]
     }
     return $person_name
 }

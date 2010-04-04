@@ -415,7 +415,7 @@ ad_proc -public auth::create_user {
     {-verify_password_confirm:boolean}
     {-user_id ""}
     {-username ""}
-    {-email:required} 
+    {-email ""}
     {-first_names ""}
     {-last_name ""}
     {-screen_name ""}

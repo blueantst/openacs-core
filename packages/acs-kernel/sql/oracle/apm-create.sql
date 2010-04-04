@@ -562,10 +562,6 @@ create table apm_parameters (
 			        references apm_package_types (package_key),
 	parameter_name		varchar2(100) 
 				constraint apm_pack_params_name_nn not null,
-        scope                   varchar2(20) default 'instance'
-                                constraint apm_parameters_scope_ck
-                                check (scope in ('global','instance'))
-                                constraint apm_parameters_scope_nn not null,
         description		varchar2(2000),
 	section_name		varchar2(200),
 	datatype	        varchar2(100) 
@@ -597,11 +593,6 @@ parameter::get.
 
 comment on column apm_parameters.parameter_name is '
   This is the name of the parameter, for example "DebugP."
-';
-
-comment on column apm_parameters.scope is '
-  If the scope is "global", only one value of the parameter exists for the entire site.
-  If "instance", each package instance has its own value.
 ';
 
 comment on column apm_parameters.description is '
@@ -685,14 +676,6 @@ begin
    datatype => 'string',
    pretty_name => 'Parameter Name',
    pretty_plural => 'Parameter Name'
- );
-
- attr_id := acs_attribute.create_attribute(
-   object_type => 'apm_parameter',
-   attribute_name => 'scope',
-   datatype => 'string',
-   pretty_name => 'Scope',
-   pretty_plural => 'Scope'
  );
 
  attr_id := acs_attribute.create_attribute(
@@ -781,7 +764,7 @@ create table apm_package_dependencies (
     dependency_type    varchar2(20)
                        constraint apm_package_deps_type_nn not null
                        constraint apm_package_deps_type_ck
-                       check(dependency_type in ('embeds', 'extends', 'provides','requires')),
+                       check(dependency_type in ('extends', 'provides','requires')),
     service_uri        varchar2(1500)
                        constraint apm_package_deps_uri_nn not null,
     service_version    varchar2(100)
@@ -970,8 +953,6 @@ as
     parameter_name		in apm_parameters.parameter_name%TYPE,
     description			in apm_parameters.description%TYPE
 				default null,
-    scope                       in apm_parameters.scope%TYPE
-                                default 'instance',
     datatype			in apm_parameters.datatype%TYPE 
 				default 'string',
     default_value		in apm_parameters.default_value%TYPE 
@@ -1013,37 +994,30 @@ as
 				default null
   );
 
-  function id_for_name (
-    package_key in apm_parameters.package_key%TYPE,
-    parameter_name in apm_parameters.parameter_name%TYPE
-  ) return apm_parameters.parameter_id%TYPE;
-
-  function id_for_name (
-    package_id in apm_packages.package_id%TYPE,
-    parameter_name in apm_parameters.parameter_name%TYPE
-  ) return apm_parameters.parameter_id%TYPE;
+  -- Return the value of this parameter for a specific package and parameter.
+  function get_value (
+    parameter_id		in apm_parameter_values.parameter_id%TYPE,
+    package_id			in apm_packages.package_id%TYPE		    
+  ) return apm_parameter_values.attr_value%TYPE;
 
   function get_value (
     package_id			in apm_packages.package_id%TYPE,
     parameter_name		in apm_parameters.parameter_name%TYPE
   ) return apm_parameter_values.attr_value%TYPE;
 
-  function get_value (
-    package_key			in apm_packages.package_key%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE
-  ) return apm_parameter_values.attr_value%TYPE;
+  -- Sets a value for a parameter for a package instance.
+  procedure set_value (
+    parameter_id		in apm_parameter_values.parameter_id%TYPE,
+    package_id			in apm_packages.package_id%TYPE,	    
+    attr_value			in apm_parameter_values.attr_value%TYPE
+  );
 
   procedure set_value (
     package_id			in apm_packages.package_id%TYPE,
     parameter_name		in apm_parameters.parameter_name%TYPE,
     attr_value			in apm_parameter_values.attr_value%TYPE
   );	
-
-  procedure set_value (
-    package_key			in apm_packages.package_key%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE,
-    attr_value			in apm_parameter_values.attr_value%TYPE
-  );	
+    		    
 
 end apm;
 /
@@ -1549,8 +1523,6 @@ as
     parameter_name		in apm_parameters.parameter_name%TYPE,
     description			in apm_parameters.description%TYPE
 				default null,
-    scope                       in apm_parameters.scope%TYPE
-                                default 'instance',
     datatype			in apm_parameters.datatype%TYPE 
 				default 'string',
     default_value		in apm_parameters.default_value%TYPE 
@@ -1574,29 +1546,22 @@ as
     );
     
     insert into apm_parameters 
-    (parameter_id, parameter_name, description, package_key, datatype, scope,
+    (parameter_id, parameter_name, description, package_key, datatype, 
     default_value, section_name, min_n_values, max_n_values)
     values
     (v_parameter_id, register_parameter.parameter_name, register_parameter.description,
-    register_parameter.package_key, register_parameter.datatype, register_parameter.scope,
+    register_parameter.package_key, register_parameter.datatype, 
     register_parameter.default_value, register_parameter.section_name, 
-    register_parameter.min_n_values, register_parameter.max_n_values);
+	register_parameter.min_n_values, register_parameter.max_n_values);
     -- Propagate parameter to new instances.	
-    if register_parameter.scope = 'instance' then
-      for pkg in (select package_id from apm_packages where package_key = register_parameter.package_key)
-        loop
-        	v_value_id := apm_parameter_value.new(
-  	                      package_id => pkg.package_id,
-  	                      parameter_id => v_parameter_id, 
-  	                      attr_value => register_parameter.default_value); 	
-        end loop;		
-    else
-      v_value_id := apm_parameter_value.new(
-  	                   package_id => null,
-  	                   parameter_id => v_parameter_id, 
-  	                   attr_value => register_parameter.default_value); 	
-    end if;
-
+    for pkg in (select package_id from apm_packages where package_key = register_parameter.package_key)
+      loop
+      	v_value_id := apm_parameter_value.new(
+	    package_id => pkg.package_id,
+	    parameter_id => v_parameter_id, 
+	    attr_value => register_parameter.default_value
+	    ); 	
+      end loop;		
     return v_parameter_id;
   end register_parameter;
 
@@ -1666,8 +1631,8 @@ as
   end unregister_parameter;
 
   function id_for_name (
-    package_key			in apm_parameters.package_key%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE
+    parameter_name		in apm_parameters.parameter_name%TYPE,
+    package_key			in apm_parameters.package_key%TYPE
   ) return apm_parameters.parameter_id%TYPE
   is
     a_parameter_id apm_parameters.parameter_id%TYPE; 
@@ -1676,104 +1641,66 @@ as
     from apm_parameters p
     where p.parameter_name = id_for_name.parameter_name and
           p.package_key = id_for_name.package_key;
-
     return a_parameter_id;
-
-    exception when no_data_found then
-      raise_application_error(-20000, 'The specified package ' || 
-        id_for_name.package_key || ' AND/OR parameter ' || id_for_name.package_key || 
-        ' do not exist');
-
   end id_for_name;
-
-  function id_for_name (
-    package_id			in apm_packages.package_id%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE
-  ) return apm_parameters.parameter_id%TYPE
-  is
-    a_parameter_id apm_parameters.parameter_id%TYPE; 
-  begin
-    select parameter_id into a_parameter_id
-    from apm_parameters p
-    where p.parameter_name = id_for_name.parameter_name and
-          p.package_key = (select package_key from apm_packages
-                           where package_id = id_for_name.package_id);
-
-    return a_parameter_id;
-
-    exception when no_data_found then
-      raise_application_error(-20000, 'The specified package ' || 
-        id_for_name.package_id || ' AND/OR parameter ' || id_for_name.parameter_name || 
-        ' do not exist');
-
-  end id_for_name;
-
+		
   function get_value (
-    package_id			in apm_packages.package_id%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE
+    parameter_id		in apm_parameter_values.parameter_id%TYPE,
+    package_id			in apm_packages.package_id%TYPE		    
   ) return apm_parameter_values.attr_value%TYPE
   is
-    parameter_id apm_parameter_values.parameter_id%TYPE;
     value apm_parameter_values.attr_value%TYPE;
   begin
-    parameter_id := apm.id_for_name(package_id, parameter_name);
-
-    select attr_value into value
-    from apm_parameter_values v
-    where v.package_id = get_value.package_id
-      and parameter_id = get_value.parameter_id;
-
-    return value;
-  end get_value;	
-
-  function get_value (
-    package_key			in apm_packages.package_key%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE
-  ) return apm_parameter_values.attr_value%TYPE
-  is
-    parameter_id apm_parameter_values.parameter_id%TYPE;
-    value apm_parameter_values.attr_value%TYPE;
-  begin
-    parameter_id := apm.id_for_name(package_key, parameter_name);
-
     select attr_value into value from apm_parameter_values v
-    where v.package_id is null
-      and parameter_id = get_value.parameter_id;
-
+    where v.package_id = get_value.package_id
+    and parameter_id = get_value.parameter_id;
     return value;
+  end get_value;
+
+  function get_value (
+    package_id			in apm_packages.package_id%TYPE,
+    parameter_name		in apm_parameters.parameter_name%TYPE
+  ) return apm_parameter_values.attr_value%TYPE
+  is
+    v_parameter_id apm_parameter_values.parameter_id%TYPE;
+  begin
+    select parameter_id into v_parameter_id 
+    from apm_parameters 
+    where parameter_name = get_value.parameter_name
+    and package_key = (select package_key  from apm_packages
+			where package_id = get_value.package_id);
+    return apm.get_value(
+	parameter_id => v_parameter_id,
+	package_id => get_value.package_id
+    );	
   end get_value;	
 
+
+  -- Sets a value for a parameter for a package instance.
   procedure set_value (
-    package_key			in apm_packages.package_key%TYPE,
-    parameter_name		in apm_parameters.parameter_name%TYPE,
+    parameter_id		in apm_parameter_values.parameter_id%TYPE,
+    package_id			in apm_packages.package_id%TYPE,	    
     attr_value			in apm_parameter_values.attr_value%TYPE
   ) 
   is
-    parameter_id apm_parameter_values.parameter_id%TYPE;
-    value_id apm_parameter_values.value_id%TYPE;
+    v_value_id apm_parameter_values.value_id%TYPE;
   begin
-    parameter_id := apm.id_for_name(package_key, parameter_name);
-
-    select value_id into value_id from apm_parameter_values
-    where parameter_id = set_value.parameter_id
-      and package_id is null;
-
-    update apm_parameter_values
-    set attr_value = set_value.attr_value
-    where parameter_id = set_value.parameter_id
-    and package_id = null;
-
-
-    exception
-      when NO_DATA_FOUND
-      then
-        value_id := apm_parameter_value.new(
-           package_id => null,
-           parameter_id => set_value.parameter_id,
-           attr_value => set_value.attr_value
-        );
-
-  end set_value;	
+    -- Determine if the value exists
+    select value_id into v_value_id from apm_parameter_values 
+     where parameter_id = set_value.parameter_id 
+     and package_id = set_value.package_id;
+    update apm_parameter_values set attr_value = set_value.attr_value
+     where parameter_id = set_value.parameter_id 
+     and package_id = set_value.package_id;    
+     exception 
+       when NO_DATA_FOUND
+       then
+         v_value_id := apm_parameter_value.new(
+            package_id => set_value.package_id,
+            parameter_id => set_value.parameter_id,
+            attr_value => set_value.attr_value
+         );
+   end set_value;
 
   procedure set_value (
     package_id			in apm_packages.package_id%TYPE,
@@ -1781,32 +1708,23 @@ as
     attr_value			in apm_parameter_values.attr_value%TYPE
   ) 
   is
-    parameter_id apm_parameter_values.parameter_id%TYPE;
-    value_id apm_parameter_values.value_id%TYPE;
+    v_parameter_id apm_parameter_values.parameter_id%TYPE;
   begin
-    parameter_id := apm.id_for_name(package_id, parameter_name);
-
-    select value_id into value_id from apm_parameter_values
-    where parameter_id = set_value.parameter_id
-      and package_id = set_value.package_id;
-
-    update apm_parameter_values
-    set attr_value = set_value.attr_value
-    where parameter_id = set_value.parameter_id
-    and package_id = set_value.package_id;
-
-
+    select parameter_id into v_parameter_id 
+    from apm_parameters 
+    where parameter_name = set_value.parameter_name
+    and package_key = (select package_key  from apm_packages
+			where package_id = set_value.package_id);
+    apm.set_value(
+	parameter_id => v_parameter_id,
+	package_id => set_value.package_id,
+	attr_value => set_value.attr_value
+    );
     exception
       when NO_DATA_FOUND
       then
-        value_id := apm_parameter_value.new(
-           package_id => set_value.package_id,
-           parameter_id => set_value.parameter_id,
-           attr_value => set_value.attr_value
-        );
-
+      	RAISE_APPLICATION_ERROR(-20000, 'The parameter named ' || set_value.parameter_name || ' that you attempted to set does not exist AND/OR the specified package ' || set_value.package_id || ' does not exist in the system.');	
   end set_value;	
-
 end apm;
 /
 show errors  
@@ -1822,8 +1740,7 @@ as
    cursor cur is
        select parameter_id, default_value
        from apm_parameters
-       where package_key = initialize_parameters.package_key
-         and scope = 'instance';
+       where package_key = initialize_parameters.package_key;
   begin
     -- need to initialize all params for this type
     for cur_val in cur

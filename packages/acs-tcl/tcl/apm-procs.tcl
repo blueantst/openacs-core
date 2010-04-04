@@ -177,41 +177,29 @@ ad_proc apm_build_subsite_packages_list {} {
 
 }
 
-ad_proc apm_package_list_url_resolution {
+ad_proc apm_package_list_search_order {
     package_list
 } {
-    Use a left-right, breadth-first traverse of the inheritance DAG to build a
-    structure to be used by the request processor to resolve URLs based on a
-    package's "extends" and "embeds" dependencies.
+    Left-right, breadth-first traverse of the inheritance DAG.
 } {
     global apm_visited_package_keys
-    global apm_package_url_resolution
+    global apm_package_search_order
 
-    foreach package $package_list {
-        foreach {package_key dependency_type} $package {}
+    foreach package_key $package_list {
         if { [info exists apm_visited_package_keys($package_key)] } {
             continue
         }
-        switch $dependency_type {
-            extends -
-            "" { lappend apm_package_url_resolution [acs_root_dir]/packages/$package_key/www }
-            embeds { lappend apm_package_url_resolution \
-                          [list [acs_root_dir]/packages/$package_key/embed $package_key]
-                    }
-            default {
-                error "apm_package_list_url_resolution: dependency type is $dependency_type"
-            }
-        }
+        lappend apm_package_search_order $package_key
         set apm_visited_package_keys($package_key) 1
     }
 
     # Make sure old versions work ...
-    foreach package $package_list {
-        foreach {package_key dependency_type} $package {}
-        set inherit_templates_p t
-#fix!
+    foreach package_key $package_list {
+        set inherit_templates_p 1
         catch { db_1row get_inherit_templates_p {} }
-        apm_package_list_url_resolution [db_list_of_lists get_dependencies {}]
+        if { [string is true $inherit_templates_p] } {
+            apm_package_list_search_order [db_list get_dependencies {}]
+        }
     }
 }
 
@@ -267,15 +255,15 @@ ad_proc apm_build_one_package_relationships {
 
 } {
     global apm_visited_package_keys
-    global apm_package_url_resolution
+    global apm_package_search_order
     global apm_package_inherit_order
     global apm_package_load_libraries_order
     global apm_package_descendents
 
     array unset apm_visited_package_keys
-    set apm_package_url_resolution [list]
-    apm_package_list_url_resolution $package_key
-    nsv_set apm_package_url_resolution $package_key $apm_package_url_resolution
+    set apm_package_search_order [list]
+    apm_package_list_search_order $package_key
+    nsv_set apm_package_search_order $package_key $apm_package_search_order
 
     array unset apm_visited_package_keys
     set apm_package_inherit_order [list]
@@ -307,7 +295,9 @@ ad_proc apm_build_package_relationships {} {
 ad_proc apm_package_descendents {
     package_key
 } {
+
     Wrapper that returns the cached package descendents list.
+
 } {
     return [nsv_get apm_package_descendents $package_key]
 }
@@ -315,24 +305,29 @@ ad_proc apm_package_descendents {
 ad_proc apm_package_inherit_order {
     package_key
 } {
+
     Wrapper that returns the cached package inheritance order list.
+
 } {
     return [nsv_get apm_package_inherit_order $package_key]
 }
 
-ad_proc apm_package_url_resolution {
+ad_proc apm_package_search_order {
     package_key
 } {
-    Wrapper that returns the cached package search order list.
-} {
-    return [nsv_get apm_package_url_resolution $package_key]
-}
 
+    Wrapper that returns the cached package search order list.
+
+} {
+    return [nsv_get apm_package_search_order $package_key]
+}
 
 ad_proc apm_package_load_libraries_order {
     package_key
 } {
+
     Wrapper that returns the cached package library load order list.
+
 } {
     return [nsv_get apm_package_load_libraries_order $package_key]
 }
@@ -976,15 +971,10 @@ ad_proc -public apm_parameter_register {
     {
 	-callback apm_dummy_callback
 	-parameter_id ""
-        -scope instance
     } 
     parameter_name description package_key default_value datatype {section_name ""} {min_n_values 1} {max_n_values 1}
 } {
     Register a parameter in the system.
-
-    The new "scope" parameter is named rather than positional to avoid breaking existing
-    code.
-
     @return The parameter id of the new parameter.
 
 } {
@@ -998,13 +988,21 @@ ad_proc -public apm_parameter_register {
 
     ns_log debug "apm_parameter_register: Registering $parameter_name, $section_name, $default_value"
 
-    set parameter_id [db_exec_plsql parameter_register {}]
-
-    # Propagate to descendents if it's an instance parameter.
-
-    if { $scope eq "instance" } {
-        apm_copy_param_to_descendents $package_key $parameter_name
-    }
+    set parameter_id [db_exec_plsql parameter_register {
+	    begin
+	    :1 := apm.register_parameter(
+					 parameter_id => :parameter_id,
+					 parameter_name => :parameter_name,
+					 package_key => :package_key,
+					 description => :description,
+					 datatype => :datatype,
+					 default_value => :default_value,
+					 section_name => :section_name,
+					 min_n_values => :min_n_values,
+					 max_n_values => :max_n_values
+	                                );
+	    end;
+	}]
 
     # Update the cache.
     db_foreach apm_parameter_cache_update {
@@ -1023,21 +1021,36 @@ ad_proc -public apm_parameter_unregister {
     Unregisters a parameter from the system.
 } {
     if { $parameter_id eq "" } {
-        set parameter_id [db_string select_parameter_id {}]
+        set parameter_id [db_string select_parameter_id { 
+            select parameter_id
+            from   apm_parameters
+            where  package_key = :package_key
+            and    parameter_name = :parameter
+        }]
     }
-
-    db_1row get_scope_and_name {}
 
     ns_log Debug "apm_parameter_unregister: Unregistering parameter $parameter_id."
+    db_foreach all_parameters_packages {
+	select package_id, parameter_id, parameter_name 
+	from apm_packages p, apm_parameters ap
+	where p.package_key = ap.package_key
+	and ap.parameter_id = :parameter_id
 
-    if { $scope eq "global" } {
-	ad_parameter_cache -delete $package_key $parameter_name
-    } else {
-        db_foreach all_parameters_packages {} {
-	    ad_parameter_cache -delete $package_id $parameter_name
-        }
+    } {
+	ad_parameter_cache -delete $package_id $parameter_name
+    } if_no_rows {
+	return
     }
-    db_exec_plsql unregister {}
+	
+    db_exec_plsql parameter_unregister {
+	begin
+	delete from apm_parameter_values 
+	where parameter_id = :parameter_id;
+	delete from apm_parameters 
+	where parameter_id = :parameter_id;
+	acs_object.del(:parameter_id);
+	end;
+    }   
 }
 
 ad_proc -public apm_dependency_add {
@@ -2038,7 +2051,6 @@ ad_proc -public apm::convert_type {
         site_node::update_cache -node_id $node_id
     }
 
-# DRB: parameter fix!
     db_foreach get_params {} {
         db_1row get_new_parameter_id {}
         db_dml update_param {}

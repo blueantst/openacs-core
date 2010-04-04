@@ -88,23 +88,5 @@
         where version_id = :version_id
       </querytext>
 </fullquery>
-
-<fullquery name="apm_copy_param_to_descendents.param">      
-  <querytext>
-    select ap.*
-    from apm_parameters ap
-    where package_key = :new_package_key
-      and parameter_name = :parameter_name
-  </querytext>
-</fullquery>
-
-<fullquery name="apm_copy_inherited_params.inherited_params">      
-  <querytext>
-    select ap.*
-    from apm_parameters ap
-    where package_key = :inherited_package_key
-      and scope = 'instance'
-   </querytext>
-</fullquery>
  
 </queryset>

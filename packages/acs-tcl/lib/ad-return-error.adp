@@ -1,6 +1,8 @@
 <master>
-  <property name="doc(title)">@title;noquote@</property>
+  <property name="title">@title;noquote@</property>
 
 <div id="user-message">
-	<p>@explanation;noquote@</p>
+<ul>
+	<li><i>@explanation;noquote@</i></li>
+</ul>
 </div>

@@ -109,31 +109,15 @@ ad_proc -public ad_context_bar_multirow {
     if { ![exists_and_not_null node_id] } {
         set node_id [ad_conn node_id]
     }
-
-    set temp_node_id [util_current_location_node_id]
-    if { $temp_node_id eq "" } {
-        # not a site host_node 
-        set node_id_url ""
-        set node_id_url_end 0
-    } else {
-        set from_node $temp_node_id
-        set node_id_url [site_node::get_url -node_id ${temp_node_id} -notrailing]    
-        set node_id_url_end [string length $node_id_url]
-    }
-
+    
     template::multirow create $multirow url label
-
+    
     foreach elm [ad_context_node_list -from_node $from_node $node_id] {
-        set elm_0 [lindex $elm 0]
-        set elm_1 [lindex $elm 1]
-        if { $node_id_url_end > 0 && [string match -nocase $node_id_url [string range $elm_0 0 ${node_id_url_end}-1] ] } {
-            set elm_0 [string range $elm_0 $node_id_url_end end]
-        }
-        template::multirow append $multirow $elm_0 $elm_1
+        template::multirow append $multirow [lindex $elm 0] [lindex $elm 1]
     }
     
     if { [string match "admin/*" [ad_conn extra_url]] } {
-        template::multirow append $multirow "[ad_conn package_url]admin/" "[_ acs-tcl.Administration]"
+        template::multirow append $multirow "[ad_conn package_url]admin/" "Administration"
     }
     
     if { [llength $context] == 0 } { 
@@ -176,7 +160,7 @@ ad_proc -public ad_context_bar {
 
     if { [string match "admin/*" [ad_conn extra_url]] } {
         lappend context [list "[ad_conn package_url]admin/" \
-                             "[_ acs-tcl.Administration]"]
+                             "Administration"]
     }
 
     if {[llength $args] == 0} { 
@@ -282,20 +266,6 @@ ad_proc -public ad_choice_bar { items links values {default ""} } {
 	return ""
     }
     
-}
-
-ad_proc -public util_current_location_node_id { } {
-    returns node_id of util_current_location. Useful for hostnode mapped sites using ad_context_bar
-} {
-    regexp {^([a-z]+://)?([^:]+)(:[0-9]*)?$} [util_current_location] match location_proto location_hostname location_port
-    if { [string match -nocase "www.*" $location_hostname] } {
-        set location_hostname [string range $location_hostname 4 end]
-    } 
-    db_0or1row -cache_key util-${location_hostname}-node-id get_node_id_from_hostname "select node_id from host_node_map where host = :location_hostname"
-    if { ![info exists node_id ] } {
-        set node_id ""
-    }
-    return $node_id
 }
 
 # directories that should not receive links to move up one level

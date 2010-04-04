@@ -80,7 +80,7 @@ ad_proc -public -callback subsite::parameter_changed {
    -parameter:required
    -value:required
 } {
-    Callback for changing the value of an instance parameter.
+    Callback for changing the value of a parameter.
 
     @param package_id The package_id of the package the parameter was changed for.
     @param parameter The parameter value.
@@ -89,19 +89,29 @@ ad_proc -public -callback subsite::parameter_changed {
     @see package::set_value
 } -
 
-ad_proc -public -callback subsite::global_parameter_changed {
-   -package_key:required
+ad_proc -public -callback subsite::parameter_changed -impl subsite {
+   -package_id:required
    -parameter:required
    -value:required
 } {
-    Callback for changing the value of a global parameter.
+    Implementation of subsite::parameter_changed for subsite itself. This proc will simply set the parameter
 
-    @param package_key The package_key of the package the parameter was changed for.
-    @param parameter The parameter value.
-    @param value The new value.
+    @author Nima Mazloumi (nima.mazloumi@gmx.de)
+    @creation-date 2005-08-17
+
+    @param package_id the package_id of the package the parameter was changed for
+    @param parameter  the parameter name
+    @param value      the new value
 
     @see package::set_value
-} -
+} {
+    ns_log Debug "subsite::parameter_changed -impl subsite changing $parameter to $value"
+
+    parameter::set_value \
+	-package_id $package_id \
+	-parameter $parameter \
+	-value $value
+}
 
 ad_proc -public -callback subsite::url {
     -package_id:required

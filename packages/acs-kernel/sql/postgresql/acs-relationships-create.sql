@@ -378,14 +378,12 @@ create table acs_data_links (
                         constraint acs_data_links_obj_two_fk
                         references acs_objects (object_id)
                         on delete cascade,
-        relation_tag    varchar(100),
         constraint acs_data_links_un unique
-        (object_id_one, object_id_two, relation_tag)
+        (object_id_one, object_id_two)
 );
 
 create index acs_data_links_id_one_idx on acs_data_links (object_id_one);
 create index acs_data_links_id_two_idx on acs_data_links (object_id_two);
-create index acs_data_links_rel_tag_idx on acs_data_links (relation_tag);
 
 
 --------------
@@ -394,7 +392,7 @@ create index acs_data_links_rel_tag_idx on acs_data_links (relation_tag);
 
 -- added by oumi@arsdigita.com - Jan 11, 2001
 
-create function acs_rels_in_tr () returns trigger as '
+create function acs_rels_in_tr () returns opaque as '
 declare
   dummy integer;
   target_object_type_one acs_object_types.object_type%TYPE;

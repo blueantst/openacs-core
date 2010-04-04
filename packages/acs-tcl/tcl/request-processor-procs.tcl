@@ -34,12 +34,12 @@ ad_proc -public rp_internal_redirect {
     the current directory, relative links returned to the clients
     browser may be broken (since the client will have the original URL).
 
-    Use rp_form_put or rp_form_update if you want to feed query variables to the redirected page.
+    Use rp_form_put if you want to feed query variables to the redirected page.
     
     @param absolute_path If set the path is an absolute path within the host filesystem
     @param path path to the file to serve
 
-    @see rp_form_put, rp_form_update
+    @see rp_form_put
 
 } {
 
@@ -132,17 +132,6 @@ ad_proc rp_form_put { name value } {
     return $form
 }
 
-ad_proc rp_form_update { name value } {
-
-    Identical to rp_form_put, but uses ns_set update instead.
-
-    @return the form ns_set, in case you're interested. Mostly you will want to discard the result.
-
- } {
-    set form [rp_getform]
-    ns_set update $form $name $value
-    return $form
-}
 
 ad_proc ad_return { args } {
 
@@ -544,12 +533,10 @@ ad_proc -private rp_filter { why } {
             }
             if { [security::secure_conn_p] } {
                 # it's a secure connection.
-                ad_returnredirect \
-                    -allow_complete_url https://[ad_host][ad_port]$url
+                ad_returnredirect https://[ad_host][ad_port]$url
                 return "filter_return"
             } else {
-                ad_returnredirect \
-                    -allow_complete_url http://[ad_host][ad_port]$url
+                ad_returnredirect http://[ad_host][ad_port]$url
                 return "filter_return"
             }
         }
@@ -599,7 +586,7 @@ ad_proc -private rp_filter { why } {
             if { $query ne "" } {
         	set query "?[export_entire_form_as_url_vars]"
             }
-            ad_returnredirect -allow_complete_url "[ns_conn location][ns_conn url]$query"
+            ad_returnredirect "[ns_conn location][ns_conn url]$query"
             return "filter_return"
         }
     }
@@ -861,36 +848,31 @@ ad_proc -private rp_handler {} {
       rp_debug -debug t "error in rp_handler: $errmsg"
     }
 
-    set resolve_values [concat [ns_info pageroot][string trimright [ad_conn package_url] /] \
-                               [apm_package_url_resolution [ad_conn package_key]]]
+    set roots [ns_info pageroot][string trimright [ad_conn package_url] /]
 
-    foreach resolve_value $resolve_values {
-        foreach {root match_prefix} $resolve_value {}
-        set extra_url [ad_conn extra_url]
-        if { $match_prefix ne "" } {
-            if { [string first $match_prefix $extra_url] == 0 } {
-                set extra_url [string trimleft \
-                    [string range $extra_url [string length $match_prefix] end] /]
-            } else {
-                continue
-            }
+    if { [ad_conn package_key] ne "" } {
+        foreach package_key [apm_package_search_order [ad_conn package_key]] {
+            lappend roots [acs_root_dir]/packages/$package_key/www
         }
-        ds_add rp [list notice "Trying rp_serve_abstract_file $root/$extra_url" $startclicks [clock clicks -milliseconds]]
+    }
+
+    foreach root $roots {
+        ds_add rp [list notice "Trying rp_serve_abstract_file $root/[ad_conn extra_url]" $startclicks [clock clicks -milliseconds]]
         ad_try {
-            rp_serve_abstract_file "$root/$extra_url"
+            rp_serve_abstract_file "$root/[ad_conn extra_url]"
             set tcl_url2file([ad_conn url]) [ad_conn file]
             set tcl_url2path_info([ad_conn url]) [ad_conn path_info]
         } notfound val {
-            ds_add rp [list notice "File $root/$extra_url: Not found" $startclicks [clock clicks -milliseconds]]
-            ds_add rp [list transformation [list notfound "$root / $extra_url" $val] $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list notice "File $root/[ad_conn extra_url]: Not found" $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list transformation [list notfound "$root / [ad_conn extra_url]" $val] $startclicks [clock clicks -milliseconds]]
             continue
         } redirect url {
-            ds_add rp [list notice "File $root/$extra_url: Redirect" $startclicks [clock clicks -milliseconds]]
-            ds_add rp [list transformation [list redirect $root/$extra_url $url] $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list notice "File $root/[ad_conn extra_url]: Redirect" $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list transformation [list redirect $root/[ad_conn extra_url] $url] $startclicks [clock clicks -milliseconds]]
             ad_returnredirect $url
         } directory dir_index {
-            ds_add rp [list notice "File $root/$extra_url: Directory index" $startclicks [clock clicks -milliseconds]]
-            ds_add rp [list transformation [list directory $root/$extra_url $dir_index] $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list notice "File $root/[ad_conn extra_url]: Directory index" $startclicks [clock clicks -milliseconds]]
+            ds_add rp [list transformation [list directory $root/[ad_conn extra_url] $dir_index] $startclicks [clock clicks -milliseconds]]
             continue
         }
         return
@@ -909,40 +891,30 @@ ad_proc -private rp_handler {} {
     # OK, we didn't find a normal file. Let's look for a path info style thingy,
     # visiting possible file matches from most specific to least.
 
-    foreach prefix [rp_path_prefixes $extra_url] {
-        foreach resolve_value $resolve_values {
-            foreach {root match_prefix} $resolve_value {}
-            set extra_url [ad_conn extra_url]
-            if { $match_prefix ne "" } {
-                if { [string first $match_prefix $extra_url] == 0 } {
-                    set extra_url [string trimleft \
-                        [string range $extra_url [string length $match_prefix] end] /]
-                } else {
-                    continue
-                }
-            }
+    foreach prefix [rp_path_prefixes [ad_conn extra_url]] {
+        foreach root $roots {
             ad_try {
                 ad_conn -set path_info \
-                    [string range $extra_url [expr {[string length $prefix] - 1}] end]
+                    [string range [ad_conn extra_url] [expr {[string length $prefix] - 1}] end]
                 rp_serve_abstract_file -noredirect -nodirectory \
                     -extension_pattern ".vuh" "$root$prefix"
                     set tcl_url2file([ad_conn url]) [ad_conn file]
                     set tcl_url2path_info([ad_conn url]) [ad_conn path_info]
                 } notfound val {
-                    ds_add rp [list transformation [list notfound $root$prefix $val] $startclicks [clock clicks -milliseconds]]
+                    ds_add rp [list transformation [list notfound $root/[ad_conn extra_url] $val] $startclicks [clock clicks -milliseconds]]
                     continue
                 } redirect url {
-                    ds_add rp [list transformation [list redirect $root$prefix $url] $startclicks [clock clicks -milliseconds]]
+                    ds_add rp [list transformation [list redirect $root/[ad_conn extra_url] $url] $startclicks [clock clicks -milliseconds]]
                     ad_returnredirect $url
                 } directory dir_index {
-                    ds_add rp [list transformation [list directory $root$prefix $dir_index] $startclicks [clock clicks -milliseconds]]
+                    ds_add rp [list transformation [list directory $root/[ad_conn extra_url] $dir_index] $startclicks [clock clicks -milliseconds]]
                     continue
                 }
             return
         }
     }
 
-    ds_add rp [list transformation [list notfound $root/$extra_url notfound] $startclicks [clock clicks -milliseconds]]
+    ds_add rp [list transformation [list notfound $root/[ad_conn extra_url] notfound] $startclicks [clock clicks -milliseconds]]
     ns_returnnotfound
   } errmsg]] } {
     if {$code == 1} {
@@ -1529,17 +1501,14 @@ ad_proc -public request_denied_filter { why } {
 if {[ns_info name] eq "NaviServer"} {
   # this is written for NaviServer 4.99.1 or newer
   foreach filter {rp_filter rp_resources_filter request_denied_filter} {
-    if {[info command ::${filter}_aolserver] eq ""} {
-      rename $filter ${filter}_aolserver
-    }
+    rename $filter ${filter}_aolserver
     proc $filter {why} [list ${filter}_aolserver \$why ]
   }
 
-  if {[info command rp_invoke_filter_conn] eq ""} {
-    rename rp_invoke_filter rp_invoke_filter_conn
-    rename rp_invoke_proc   rp_invoke_proc_conn
-  }
+  rename rp_invoke_filter rp_invoke_filter_conn
   proc   rp_invoke_filter { why filter_info} { rp_invoke_filter_conn _ $filter_info $why}
+  
+  rename rp_invoke_proc   rp_invoke_proc_conn
   proc   rp_invoke_proc   { argv }            { rp_invoke_proc_conn _ $argv }
 
 }

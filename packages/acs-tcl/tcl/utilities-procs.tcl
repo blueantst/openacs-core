@@ -1506,16 +1506,6 @@ ad_proc -public exists_and_not_null { varname } {
     return [expr { [info exists var] && $var ne "" }] 
 } 
 
-ad_proc -public exists_or_null { varname } {
-    Returns the contents of the variable if it exists, otherwise returns empty string
-} {
-    upvar 1 $varname var
-    if {[info exists var]} {
-        return $var
-    }
-    return ""
-}
-
 ad_proc -public exists_and_equal { varname value } {
     Returns 1 if the variable name exists in the caller's envirnoment
     and is equal to the given value.
@@ -1873,7 +1863,6 @@ ad_proc -public ad_set_cookie {
 	-max_age ""
 	-domain ""
 	-path "/"
-	-discard f
     }
     name {value ""}
 } { 
@@ -1903,9 +1892,6 @@ ad_proc -public ad_set_cookie {
     without the replace option being specified, the client will
     receive both copies of the cookie.
 
-    @param discard instructs the user agent to discard the
-    cookie when when the user agent terminates.
-
     @param value is autmatically URL encoded.
 
     @see ad_get_cookie
@@ -1932,9 +1918,7 @@ ad_proc -public ad_set_cookie {
 	append cookie "; Path=$path"
     }
 
-    if { $discard ne "f" } {
-	append cookie "; Discard"
-    } elseif { $max_age eq "inf" } {
+    if { $max_age eq "inf" } {
         if { $expire ne "t" } {
             # netscape seemed unhappy with huge max-age, so we use
             # expires which seems to work on both netscape and IE
@@ -1956,7 +1940,6 @@ ad_proc -public ad_set_cookie {
 	append cookie "; Secure"
     }
 
-    ns_log Debug "OACS Set-Cookie: $cookie"
     ns_set put $headers "Set-Cookie" $cookie
 }
 
@@ -2209,7 +2192,7 @@ ad_proc -public ad_returnredirect {
         # http://myserver.com/foo/bar.tcl style - just pass to ns_returnredirect
         # check if the hostname matches the current host
         if {[util::external_url_p $target_url] && !$allow_complete_url_p} {
-            error "Redirection to external hosts is not allowed."
+            error "Redirction to external hosts is not allowed."
         }
         set url $target_url
     } elseif { [util_absolute_path_p $target_url] } {
@@ -3043,18 +3026,15 @@ ad_proc -public max { args } {
 #     and whatever the user typed will be set in $expiration_date
 
 proc ad_dateentrywidget {column {default_date "1940-11-03"}} {
-    if {[ns_info name] ne "NaviServer"} {
-        ns_share NS
-    } else {
-        set NS(months) [list January February March April May June \
-                            July August September October November December]
-    }
+    ns_share NS
+
     set output "<select name=\"$column.month\">\n"
     for {set i 0} {$i < 12} {incr i} {
 	append output "<option> [lindex $NS(months) $i]</option>\n"
     }
 
     append output "</select>&nbsp;<input name=\"$column.day\" type=\"text\" size=\"3\" maxlength=\"2\">&nbsp;<input name=\"$column.year\" type=\"text\" size=\"5\" maxlength=\"4\">"
+
 
     return [ns_dbformvalueput $output $column date $default_date]
 }
@@ -4050,16 +4030,6 @@ ad_proc ad_var_type_check_third_urlv_integer_p {{args ""}} {
 #
 ####################
 
-ad_proc util::name_to_path {
-    -name:required
-} {
-    Transforms a pretty name to a reasonable path name.
-} {
-    regsub -all -nocase { } [string trim [string tolower $name]] {-} name
-    regsub -all {[^[:alnum:]\-]} $name {} name
-    return $name
-}
-
 ad_proc -public util::backup_file {
     {-file_path:required}
     {-backup_suffix ".bak"}
@@ -4363,7 +4333,7 @@ ad_proc -public util::roll_server_log {{}} {
     Invoke the AOLserver ns_logroll command with some bookend log records.  This rolls the error log, not the access log.
 } { 
     # This param controlls how many backups of the server log to keep, 
-    ns_config -int "ns/parameters" logmaxbackup 10
+    ns_config -int "ns/parameters" maxbackup 7
     ns_log Notice "util::roll_server_log: Rolling the server log now..." 
     ns_logroll 
     ns_log Notice "util::roll_server_log: Done rolling the server log." 
@@ -4537,13 +4507,13 @@ ad_proc util::catch_exec {command result_var} {
         # The command succeeded, and wrote nothing to stderr.                   
         # $result contains what it wrote to stdout, unless you                  
         # redirected it
-        ns_log debug "util::catch_exec: Status == 0 $result"
+        ns_log debug "Status == 0 $result"
         
     } elseif {$::errorCode eq "NONE"} {
 
         # The command exited with a normal status, but wrote something          
         # to stderr, which is included in $result.                              
-        ns_log debug "util::catch_exec: Normal Status $result"
+        ns_log debug "Normal Status $result"
         
     } else {
 
@@ -4555,7 +4525,7 @@ ad_proc util::catch_exec {command result_var} {
                 # A child process, whose process ID was $pid,                   
                 # died on a signal named $sigName.  A human-                    
                 # readable message appears in $msg.
-                ns_log notice "util::catch_exec: childkilled $pid $sigName $msg $result"
+                ns_log notice "childkilled $pid $sigName $msg $result"
                 set result "process $pid died with signal $sigName \"$msg\""
                 return 1
             }
@@ -4566,7 +4536,7 @@ ad_proc util::catch_exec {command result_var} {
 
                 # A child process, whose process ID was $pid,                   
                 # exited with a non-zero exit status, $code.
-                ns_log notice "util::catch_exec: Childstatus $pid $code $result"
+                ns_log notice "Childstatus $pid $code $result"
             }
 
             CHILDSUSP {
@@ -4577,7 +4547,7 @@ ad_proc util::catch_exec {command result_var} {
                 # has been suspended because of a signal named                  
                 # $sigName.  A human-readable description of the                
                 # signal appears in $msg.                                       
-                ns_log notice "util::catch_exec: Child susp $pid $sigName $msg $result"
+                ns_log notice "Child susp $pid $sigName $msg $result"
                 set result "process $pid was suspended with signal $sigName \"$msg\""
                 return 1
             }
@@ -4589,7 +4559,7 @@ ad_proc util::catch_exec {command result_var} {
                 # One of the kernel calls to launch the command                 
                 # failed.  The error code is in $errName, and a                 
                 # human-readable message is in $msg.                            
-                ns_log notice "util::catch_exec: posix $errName $msg $result"
+                ns_log notice "posix $errName $msg $result"
                 set result "an error occured $errName \"$msg\""
                 return 1
             }
@@ -4604,18 +4574,13 @@ ad_proc util::external_url_p { url } {
     valid alternatives include
     HTTPS or HTTP protocol change
     HTTP or HTTPS port number added or removed from current host name    
-   or another hostname that the host responds to (from host_node_map)
 } {
     set locations_list [security::locations]
-    # there may be as many as 3 valid full urls from one hostname
+    # there may be as many as 3 valid full urls
     set external_url_p [util_complete_url_p $url]
-
-    # more valid url pairs with host_node_map
     foreach location $locations_list {
-        set encoded_location [ns_urlencode $location]
- #       ns_log Notice "util::external_url_p location \"$location/*\" url $url match [string match "${encoded_location}/*" $url]"
+        ns_log notice "location \"$location/*\" url $url match [string match "$location/*" $url]"
         set external_url_p [expr { $external_url_p && ![string match "$location/*" $url] } ] 
-        set external_url_p [expr { $external_url_p && ![string match "${encoded_location}/*" $url] } ] 
     }
     return $external_url_p
 }

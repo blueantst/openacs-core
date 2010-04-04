@@ -77,7 +77,7 @@ begin
   select decode(count(*),0,0,1) into table_exists from user_tables 
     where table_name = upper(create_type.table_name);
 
-  if table_exists = 0 and create_type.table_name is not null then
+  if table_exists = 0 then
     select table_name into v_supertype_table from acs_object_types
       where object_type = create_type.supertype;
 
@@ -189,7 +189,7 @@ begin
 
   if table_exists = 1 and drop_table_p = 't' then
     select 
-      nvl(table_name,object_type) into v_table_name 
+      table_name into v_table_name 
     from 
       acs_object_types 
     where
@@ -518,8 +518,7 @@ procedure refresh_trigger (
     where                                               
       object_type ^= 'acs_object'                       
     and                                                 
-      object_type ^= 'content_revision'
-    and table_name is not null
+      object_type ^= 'content_revision'                 
     connect by                                          
       prior supertype = object_type                     
     start with                                          
@@ -531,7 +530,7 @@ begin
 
   -- get the table name for the content type (determines view name)
 
-  select nvl(table_name,object_type) into v_table_name
+  select table_name into v_table_name
   from acs_object_types where object_type = refresh_trigger.content_type;
 
   -- start building trigger code
@@ -643,7 +642,7 @@ begin
 
   end loop;
 
-  select nvl(table_name,object_type) into v_table_name from acs_object_types
+  select table_name into v_table_name from acs_object_types
     where object_type = content_type;
 
   -- create the input view (includes content columns)

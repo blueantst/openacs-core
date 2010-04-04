@@ -3509,8 +3509,10 @@ ad_proc -public db_flush_cache {
     @author Don Baccus (dhogasa@pacifier.com)
 
 } {
-    foreach key [ns_cache names $cache_pool $cache_key_pattern] {
-        ns_cache flush $cache_pool $key
+    foreach key [ns_cache names $cache_pool] {
+        if { [string match $cache_key_pattern $key] } {
+            ns_cache flush $cache_pool $key
+        }
     }
 }
 

@@ -2,15 +2,13 @@
 <queryset>
    <rdbms><type>postgresql</type><version>7.1</version></rdbms>
  
-<fullquery name="apm_packages">      
+<fullquery name="apm_all_service_uri">      
       <querytext>
-    select package_key, version_name,
-        apm_package_version__sortable_version_name(version_name)
-    from apm_package_versions
-    where enabled_p
-      and installed_p
-      and package_key <> :package_key
-    order by package_key, apm_package_version__sortable_version_name(version_name)
+    select distinct service_uri, service_version,
+        apm_package_version__sortable_version_name(service_version)
+    from apm_package_dependencies
+    order by service_uri, apm_package_version__sortable_version_name(service_version)
+
       </querytext>
 </fullquery>
 

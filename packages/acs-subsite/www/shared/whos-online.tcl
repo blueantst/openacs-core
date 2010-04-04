@@ -9,15 +9,15 @@ ad_page_contract {
     context:onevalue
 }
 
-set doc(title) [_ acs-subsite.Whos_Online_title]
-set context [list $doc(title)]
+set title "Who's Online?"
+set context [list "Who's Online"]
 
 set whos_online_interval [whos_online::interval]
 
 template::list::create \
     -name online_users \
     -multirow online_users \
-    -no_data [_ acs-subsite.Nobody_is_online] \
+    -no_data "No registered users online" \
     -elements {
         name {
             label "[_ acs-subsite.User_name]"
@@ -53,3 +53,4 @@ foreach elm $users {
         [lindex $elm 1] \
         [lindex $elm 2]
 }
+

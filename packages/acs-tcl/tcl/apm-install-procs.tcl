@@ -124,13 +124,12 @@ ad_proc -public apm_dependency_provided_p {
     }
 }
 
-ad_proc -private pkg_info_new { package_key spec_file_path embeds extends provides requires {dependency_p ""} {comment ""}} {
+ad_proc -private pkg_info_new { package_key spec_file_path extends provides requires {dependency_p ""} {comment ""}} {
 
     Returns a datastructure that maintains information about a package.
     @param package_key The key of the package.
     @param spec_file_path The path to the package specification file
-    @param embeds A list of packages to be embedded in the package.
-    @param extends A list of packages extended by the package.
+    @param extends A list of packages extended by the package..
     @param provides A list of dependencies provided by the package.
     @param requires A list of requirements provided by the package..
     @param dependency_p Can the package be installed without violating dependency checking.
@@ -138,7 +137,7 @@ ad_proc -private pkg_info_new { package_key spec_file_path embeds extends provid
     @return a list whose first element is a package key and whose second element is a path 
     to the associated .info file.
 } {
-    return [list $package_key $spec_file_path $embeds $extends $provides $requires $dependency_p $comment]
+    return [list $package_key $spec_file_path $extends $provides $requires $dependency_p $comment]
 }
 
 ad_proc -private pkg_info_key {pkg_info} {
@@ -168,20 +167,12 @@ ad_proc -private pkg_info_path {pkg_info} {
     return [file dirname [pkg_info_spec $pkg_info]]
 }
 
-ad_proc -private pkg_info_embeds {pkg_info} {
+ad_proc -private pkg_info_extends {pkg_info} {
 
-    @return The "embeds" dependencies of the package.
+    @return The dependencies provided by the package.
 
 } {
     return [lindex $pkg_info 2]
-}
-
-ad_proc -private pkg_info_extends {pkg_info} {
-
-    @return The "extends" dependencies of the package.
-
-} {
-    return [lindex $pkg_info 3]
 }
 
 ad_proc -private pkg_info_provides {pkg_info} {
@@ -189,15 +180,15 @@ ad_proc -private pkg_info_provides {pkg_info} {
     @return The dependencies provided by the package.
 
 } {
-    return [lindex $pkg_info 4]
+    return [lindex $pkg_info 3]
 }
 
 ad_proc -private pkg_info_requires {pkg_info} {
 
-    @return The dependencies "requires" dependencies of the package.
+    @return The dependencies required by the package info map.
 
 } {
-    return [lindex $pkg_info 5]
+    return [lindex $pkg_info 4]
 }
 
 ad_proc -private pkg_info_dependency_p {pkg_info} {
@@ -205,7 +196,7 @@ ad_proc -private pkg_info_dependency_p {pkg_info} {
     @return Does it pass the dependency checker?  "" Means it has not been run yet.
 
 } {
-    return [lindex $pkg_info 6]
+    return [lindex $pkg_info 5]
 }
 
 ad_proc -private pkg_info_comment {pkg_info} {
@@ -213,7 +204,7 @@ ad_proc -private pkg_info_comment {pkg_info} {
     @return Any comment specified about this package.
 
 } {
-    return [lindex $pkg_info 7]
+    return [lindex $pkg_info 6]
 }
 
 # DRB: This routine does more than check dependencies, it also parses spec files,
@@ -265,9 +256,7 @@ ad_proc -private apm_dependency_check {
                     [apm_package_supports_rdbms_p -package_key $package(package.key)] } {
                 lappend install_pend [pkg_info_new \
                                          $package(package.key) \
-                                         $spec_file \
-                                         $package(embeds) \
-                                         $package(extends) \
+                                         $spec_file $package(extends) \
                                          $package(provides) \
                                          $package(requires) \
                                          ""]
@@ -309,7 +298,7 @@ ad_proc -private apm_dependency_check {
             # Now determine if we can add another package to the install set.
             foreach pkg_info $install_pend {
                 set satisfied_p 1
-                foreach req [concat [pkg_info_embeds $pkg_info] [pkg_info_extends $pkg_info] [pkg_info_requires $pkg_info]] {
+                foreach req [concat [pkg_info_extends $pkg_info] [pkg_info_requires $pkg_info]] {
                     if {[apm_dependency_provided_p -dependency_list $install_in_provides \
                             [lindex $req 0] [lindex $req 1]] != 1} {
                         # Unsatisfied dependency.
@@ -329,7 +318,6 @@ ad_proc -private apm_dependency_check {
                     lappend install_in [pkg_info_new \
                                            [pkg_info_key $pkg_info] \
                                            [pkg_info_spec $pkg_info] \
-                                           [pkg_info_embeds $pkg_info] \
                                            [pkg_info_extends $pkg_info] \
                                            [pkg_info_provides $pkg_info] \
                                            [pkg_info_requires $pkg_info] \
@@ -352,7 +340,7 @@ ad_proc -private apm_dependency_check {
 
             foreach pkg_info $install_pend {
                 set satisfied_p 1
-                foreach req [concat [pkg_info_embeds $pkg_info] [pkg_info_extends $pkg_info] [pkg_info_requires $pkg_info]] {
+                foreach req [concat [pkg_info_extends $pkg_info] [pkg_info_requires $pkg_info]] {
                     set counter 0
                     foreach pkg_info_add $pkg_info_all {
                         # Will this package do anything to change whether this requirement has been satisfied?
@@ -393,8 +381,8 @@ ad_proc -private apm_dependency_check {
     if { [exists_and_not_null install_pend] } {
 	foreach pkg_info $install_pend {
 	    lappend install_in [pkg_info_new [pkg_info_key $pkg_info] [pkg_info_spec $pkg_info] \
-				    [pkg_info_embeds $pkg_info] [pkg_info_extends $pkg_info] \
-                                    [pkg_info_provides $pkg_info] [pkg_info_requires $pkg_info] \
+				    [pkg_info_extends $pkg_info] [pkg_info_provides $pkg_info] \
+                                    [pkg_info_requires $pkg_info] \
 				    "f" $install_error([pkg_info_key $pkg_info])]
 	}
 	return [list 0 $install_in]
@@ -492,14 +480,14 @@ ad_proc -private apm_dependency_check_new {
                 array set version $repository($package_key)
 
                 set satisfied_p 1
-                foreach req [concat $version(embeds) $version(extends) $version(requires)] {
+                foreach req [concat $version(extends) $version(requires)] {
                     set req_uri [lindex $req 0]
                     set req_version [lindex $req 1]
 
                     if { ![info exists provided($req_uri)] || \
                              [apm_version_names_compare $provided($req_uri) $req_version]== -1 } {
 
-                        ns_log Debug "apm_dependency_check_new: $package_key embeds, extends or requires $req_uri $req_version => failed"
+                        ns_log Debug "apm_dependency_check_new: $package_key extends or requires $req_uri $req_version => failed"
 
                         set satisfied_p 0
 
@@ -509,7 +497,7 @@ ad_proc -private apm_dependency_check_new {
                             set required($req_uri) $req_version
                         }
                     } else {
-                        ns_log Debug "apm_dependency_check_new: $package_key embeds, extends or requires $req_uri $req_version => OK"
+                        ns_log Debug "apm_dependency_check_new: $package_key extends or requires $req_uri $req_version => OK"
                     }
                 }
                 
@@ -621,16 +609,16 @@ ad_proc -private apm_dependency_check_new {
             lappend result(packages) $package_key
             
             # Find unsatisfied requirements
-            foreach req [concat $version(embeds) $version(extends) $version(requires)] {
+            foreach req [concat $version(extends) $version(requires)] {
                 set req_uri [lindex $req 0]
                 set req_version [lindex $req 1]
                 if { ![info exists provided($req_uri)] || \
                          [apm_version_names_compare $provided($req_uri) $req_version] == -1 } {
                     lappend failed($package_key) [list $req_uri $req_version]
                     if { [info exists provided($req_uri)] } {
-                        ns_log Debug "apm_dependency_check_new: Failed dependency: $package_key embeds/extends/requires $req_uri $req_version, but we only provide $provided($req_uri)"
+                        ns_log Debug "apm_dependency_check_new: Failed dependency: $package_key extends/requires $req_uri $req_version, but we only provide $provided($req_uri)"
                     } else {
-                        ns_log Debug "apm_dependency_check_new: Failed dependency: $package_key embeds/extends/requires $req_uri $req_version, but we don't have it"
+                        ns_log Debug "apm_dependency_check_new: Failed dependency: $package_key extends/requires $req_uri $req_version, but we don't have it"
                     }
                 }
             }
@@ -706,7 +694,6 @@ ad_proc -public apm_simple_package_install {
             # satisfaction later
             lappend pkg_info_list [pkg_info_new $package(package.key) \
                 $spec_file \
-                $package(embeds) \
                 $package(extends) \
                 $package(provides) \
                 $package(requires) \
@@ -866,9 +853,6 @@ ad_proc -private apm_package_install {
                                 $package_key $version_name \
 		    $version_uri $summary $description $description_format $vendor $vendor_uri $auto_mount $release_date]
 	    apm_version_upgrade $version_id
-	    apm_package_install_dependencies -callback $callback \
-                $version(embeds) $version(extends) $version(provides) $version(requires) $version_id
-            apm_build_one_package_relationships $package_key
 	    apm_package_upgrade_parameters -callback $callback $version(parameters) $package_key
 
 	} else {
@@ -887,19 +871,27 @@ ad_proc -private apm_package_install {
 	    }
 
 	    apm_load_catalog_files $package_key
-	    apm_package_install_dependencies -callback $callback \
-                $version(embeds) $version(extends) $version(provides) $version(requires) $version_id
-            apm_build_one_package_relationships $package_key
-            apm_copy_inherited_params $package_key [concat $version(embeds) $version(extends)]
 	    
 	    # Install the parameters for the version.
 	    apm_package_install_parameters -callback $callback $version(parameters) $package_key
 	}
 
 	# Update all other package information.
+	apm_package_install_dependencies -callback $callback \
+            $version(extends) $version(provides) $version(requires) $version_id
 	apm_package_install_owners -callback $callback $version(owners) $version_id
         apm_package_install_callbacks -callback $callback $version(callbacks) $version_id
-        apm_build_subsite_packages_list
+        apm_build_one_package_relationships $package_key
+
+        if { $upgrade_p } {
+            foreach descendent_package_key [nsv_get apm_package_descendents $package_key] {
+                db_list copy_descendent_params {}
+            }
+        } else {
+            foreach inherited_package_key [nsv_get apm_package_inherit_order $package_key] {
+                db_list copy_inherited_params {}
+            }
+        }
 
 	apm_callback_and_log $callback "<p>Installed $version(package-name), version $version(name).</p>"
     } {
@@ -985,36 +977,6 @@ ad_proc -private apm_package_install {
     util_memoize_flush [list apm_package_installed_p_not_cached $package_key]
 
     return $version_id
-}
-
-ad_proc apm_copy_param_to_descendents { new_package_key parameter_name } {
-    Copy a new parameter in a package to its descendents.  Called when a package is
-    upgraded or a parameter added in the APM.
-} {
-    db_1row param {}
-    foreach descendent_package_key [nsv_get apm_package_descendents $new_package_key] {
-        if { [db_exec_plsql param_exists {}] } {
-            error "$parameter_name already exists in package $descendent_package_key"
-        } else {
-            db_exec_plsql copy_descendent_param {}
-        }
-    }
-}
-
-ad_proc apm_copy_inherited_params { new_package_key dependencies } {
-    Copy parameters from a packages ancestors.  Called for "embeds" and "extends"
-    dependencies.
-} {
-    foreach dependency $dependencies {
-        set inherited_package_key [lindex $dependency 0]
-        db_foreach inherited_params {} {
-            if { [db_exec_plsql param_exists {}] } {
-                error "$parameter_name already exists in package $new_package_key"
-            } else {
-                db_exec_plsql copy_inherited_param {}
-            }
-        }
-    }
 }
 
 ad_proc -private apm_package_install_version {
@@ -1301,23 +1263,21 @@ ad_proc -private apm_package_upgrade_parameters {
 	# Keep a running tally of all parameters that are in the current version.
 	set description [lindex $parameter 1]
 	set section_name [lindex $parameter 2]
-        set scope [lindex $parameter 3]
-	set datatype [lindex $parameter 4]
-	set min_n_values [lindex $parameter 5]
-	set max_n_values [lindex $parameter 6]
-	set default_value [lindex $parameter 7]
+	set datatype [lindex $parameter 3]
+	set min_n_values [lindex $parameter 4]
+	set max_n_values [lindex $parameter 5]
+	set default_value [lindex $parameter 6]
 	if {[db_0or1row parameter_id_get {
 	    select parameter_id from apm_parameters
 	    where parameter_name = :parameter_name
 	    and package_key = :package_key
 	}]} {
 	    ns_log Debug "apm_package_upgrade_parameters: Updating parameter, $parameter_name:$parameter_id"
-            # DRB: We don't allow one to upgrade scope and should probably throw an error.
 	    apm_parameter_update $parameter_id $package_key $parameter_name $description \
 		    $default_value $datatype $section_name $min_n_values $max_n_values
 	} else {
 	    ns_log Debug "apm_package_upgrade_parameters: Registering parameter, $parameter_name."
-	    apm_parameter_register -scope $scope $parameter_name $description $package_key $default_value \
+	    apm_parameter_register $parameter_name $description $package_key $default_value \
 		    $datatype $section_name $min_n_values $max_n_values
 	}	
     }
@@ -1333,18 +1293,16 @@ ad_proc -private apm_package_install_parameters { {-callback apm_dummy_callback}
 	set parameter_name [lindex $parameter 0]
 	set description [lindex $parameter 1]
 	set section_name [lindex $parameter 2]
-        set scope [lindex $parameter 3]
-	set datatype [lindex $parameter 4]
-	set min_n_values [lindex $parameter 5]
-	set max_n_values [lindex $parameter 6]
-	set default_value [lindex $parameter 7]
-	apm_parameter_register -scope $scope $parameter_name $description $package_key $default_value $datatype \
+	set datatype [lindex $parameter 3]
+	set min_n_values [lindex $parameter 4]
+	set max_n_values [lindex $parameter 5]
+	set default_value [lindex $parameter 6]
+	apm_parameter_register $parameter_name $description $package_key $default_value $datatype \
 	    $section_name $min_n_values $max_n_values
     }
 }
 
-ad_proc -private apm_package_install_dependencies { {-callback apm_dummy_callback} embeds \
-    extends provides requires version_id} {
+ad_proc -private apm_package_install_dependencies { {-callback apm_dummy_callback} extends provides requires version_id} {
 
     Install all package dependencies.
 
@@ -1365,13 +1323,6 @@ ad_proc -private apm_package_install_dependencies { {-callback apm_dummy_callbac
 	set interface_version [lindex $item 1]
 	ns_log Debug "apm_package_install_dependencies: Registering dependency $interface_uri, $interface_version for $version_id"
 	apm_interface_add $version_id $interface_uri $interface_version
-    }
-
-    foreach item $embeds {
-	set dependency_uri [lindex $item 0]
-	set dependency_version [lindex $item 1]
-	ns_log Debug "apm_package_install_dependencies: Registering dependency $dependency_uri, $dependency_version for $version_id"
-	apm_dependency_add embeds $version_id $dependency_uri $dependency_version
     }
 
     foreach item $extends {
@@ -2063,7 +2014,7 @@ ad_proc -private apm_get_package_repository {
                 -parent_node $package_node \
                 -array version            
             
-            foreach dependency_type { provides requires embeds extends } {
+            foreach dependency_type { provides requires extends } {
                 set version($dependency_type) {}
                 foreach dependency_node [xml_node_get_children_by_name $package_node "$dependency_type"] {
                     lappend version($dependency_type) \

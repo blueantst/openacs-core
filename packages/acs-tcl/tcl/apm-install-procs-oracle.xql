@@ -248,6 +248,51 @@
       </querytext>
 </fullquery>
 
+<fullquery name="apm_package_install.copy_descendent_params">      
+  <querytext>
+
+      select apm.register_parameter(
+               null,
+               :descendent_package_key,
+               ap.parameter_name,
+               ap.description,
+               ap.datatype,
+               ap.default_value,
+               ap.section_name,
+               ap.min_n_values,
+               ap.max_n_values)
+      from apm_parameters ap
+      where package_key = :package_key
+        and not exists (select 1
+                        from apm_parameters ap2
+                        where ap2.parameter_name = ap.parameter_name
+                          and ap2.package_key = :descendent_package_key)
+	
+      </querytext>
+</fullquery>
+
+<fullquery name="apm_package_install.copy_inherited_params">      
+  <querytext>
+      select apm.register_parameter(
+               null,
+               :package_key,
+               ap.parameter_name,
+               ap.description,
+               ap.datatype,
+               ap.default_value,
+               ap.section_name,
+               ap.min_n_values,
+               ap.max_n_values)
+      from apm_parameters ap
+      where package_key = :inherited_package_key
+        and not exists (select 1
+                        from apm_parameters ap2
+                        where ap2.parameter_name = ap.parameter_name
+                          and ap2.package_key = :package_key)
+	
+      </querytext>
+</fullquery>
+
 <fullquery name="apm_package_install.version_exists_p">      
       <querytext>
       
@@ -257,60 +302,6 @@
 	    and version_id = apm_package.highest_version(:package_key)
 	
       </querytext>
-</fullquery>
-
-<fullquery name="apm_copy_param_to_descendents.param_exists">      
-  <querytext>
-    begin
-      :1 := apm.parameter_p(
-               package_key => :descendent_package_key,
-               parameter_name => :parameter_name);
-    end;
-  </querytext>
-</fullquery>
-
-<fullquery name="apm_copy_param_to_descendents.copy_descendent_param">      
-  <querytext>
-    begin
-      :1 := apm.register_parameter(
-               package_key => :descendent_package_key,
-               parameter_name => :parameter_name,
-               description => :description,
-               scope => :scope,
-               datatype => :datatype,
-               default_value => :default_value,
-               section_name => :section_name,
-               min_n_values => :min_n_values,
-               max_n_values => :max_n_values);
-    end;
-  </querytext>
-</fullquery>
-
-<fullquery name="apm_copy_inherited_params.param_exists">      
-  <querytext>
-    begin
-      :1 := apm.parameter_p(
-               package_key => :new_package_key,
-               parameter_name => :parameter_name);
-    end;
-  </querytext>
-</fullquery>
-
-<fullquery name="apm_copy_inherited_params.copy_inherited_param">      
-  <querytext>
-    begin
-      :1 := apm.register_parameter(
-               package_key => :new_package_key,
-               parameter_name => :parameter_name,
-               description => :description,
-               scope => :scope,
-               datatype => :datatype,
-               default_value => :default_value,
-               section_name => :section_name,
-               min_n_values => :min_n_values,
-               max_n_values => :max_n_values);
-    end;
-  </querytext>
 </fullquery>
 
 <fullquery name="apm_package_upgrade_p.apm_package_upgrade_p">      

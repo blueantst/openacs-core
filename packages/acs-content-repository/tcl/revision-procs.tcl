@@ -381,17 +381,17 @@ ad_proc -public cr_filename_to_mime_type {
 }
 
 ad_proc -public cr_create_mime_type { 
-    -mime_type:required
-    {-extension ""}
-    {-description ""}
+    -extension
+    -mime_type
+    -description
 } { 
 
     Creates a mime type if it does not exist.  Also maps extension to
     mime_type (unless the extension is already mapped to another mime
-    type or extension is empty).
+    type).
 
-    @param mime_type the mime_type to create
     @param extension the default extension for the given mime type
+    @param mime_type the mime_type to create
     @param a plain text description of the mime type (< 200 characters)
 
     @author Jeff Davis (davis@xarg.net)
@@ -412,15 +412,13 @@ ad_proc -public cr_create_mime_type {
                           where mime_type = :mime_type)
     }
     
-    if { $extension ne "" } {
-        db_dml maybe_map_extension { 
-            insert into cr_extension_mime_type_map (extension, mime_type) 
-            select :extension, :mime_type 
-            from dual 
-            where not exists (select 1 
+    db_dml maybe_map_extension { 
+        insert into cr_extension_mime_type_map (extension, mime_type) 
+        select :extension, :mime_type 
+        from dual 
+        where not exists (select 1 
                           from cr_extension_mime_type_map 
                           where extension = :extension)
-        }
     }
 }
 

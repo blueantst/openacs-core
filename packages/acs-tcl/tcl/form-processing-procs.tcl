@@ -794,7 +794,6 @@ ad_proc -public ad_form {
                             return -code error "element $element_name: a form can only declare one key"
                         }
                         set af_key_name($form_name) $element_name
-                        set af_type(${form_name}__$element_name) integer
                         if { $af_element_parameters($element_name:key) ne "" } {
                             if { [info exists af_sequence_name($form_name)] } {
                                 return -code error "element $element_name: duplicate sequence"
@@ -803,7 +802,6 @@ ad_proc -public ad_form {
                         }
                         lappend form_command "-datatype" "integer" "-widget" "hidden"
                         template::element create $form_name __key_signature -datatype text -widget hidden -value ""
-                        template::element create $form_name __key -datatype text -widget hidden -value $element_name
                         template::element create $form_name __new_p -datatype integer -widget hidden -value 0
                     }
 
@@ -871,17 +869,17 @@ ad_proc -public ad_form {
     foreach element_name $af_element_names($form_name) {
         if { [llength $element_name] == 1 } {
             if { [info exists af_from_sql(${form_name}__$element_name)] } {
-                if { [info commands "::template::util::$af_type(${form_name}__$element_name)::acquire"] eq "" } {
+                if { [empty_string_p [info commands "::template::util::$af_type(${form_name}__$element_name)::acquire"]] } {
                     return -code error "\"from_sql\" not valid for type \"$af_type(${form_name}__$element_name)\""
                 }
             }
             if { [info exists af_to_sql(${form_name}__$element_name)] } {
-                if { [info commands ::template::util::$af_type(${form_name}__$element_name)::get_property] eq "" } {
+                if { [empty_string_p [info commands "::template::util::$af_type(${form_name}__$element_name)::get_property"]] } {
                     return -code error "\"to_sql\" not valid for type \"$af_type(${form_name}__$element_name)\""
                 }
             }
             if { [info exists af_to_html(${form_name}__$element_name)] } {
-                if { [empty_string_p [info commands ::template::util::$af_type(${form_name}__$element_name)::get_property]] } {
+                if { [empty_string_p [info commands "::template::util::$af_type(${form_name}__$element_name)::get_property"]] } {
                     return -code error "\"to_html\" not valid for type \"$af_type(${form_name}__$element_name)\""
                 }
             }
@@ -971,8 +969,6 @@ ad_proc -public ad_form {
                             if { [info exists af_from_sql(${form_name}__$element_name)] } {
                                 set values($element_name) [template::util::$af_type(${form_name}__$element_name)::acquire \
                                                            $af_from_sql(${form_name}__$element_name) $values($element_name)]
-                            } elseif { [info commands ::template::data::from_sql::$af_type(${form_name}__$element_name)] ne "" } {
-                                set values($element_name) [template::data::from_sql::$af_type(${form_name}__$element_name) $values($element_name)]
                             }
                         }
                     }
@@ -1231,8 +1227,7 @@ ad_proc -public ad_set_form_values {
             upvar $arg value
             ad_set_element_value -element $arg -- $value
         } else {
-            set value [uplevel subst \{[lindex $arg 1]\}]
-            ad_set_element_value -element [lindex $arg 0] -- $value
+            ad_set_element_value -element [lindex $arg 0] -- [lindex $arg 1]
         }
     }
 }

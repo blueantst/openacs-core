@@ -45,7 +45,6 @@
 					 :package_key,
 					 :parameter_name,
 					 :description,
-                                         :scope,
 					 :datatype,
 					 :default_value,
 					 :section_name,
@@ -54,12 +53,6 @@
 	                                );
 	
       </querytext>
-</fullquery>
-
-<fullquery name="apm_parameter_unregister.unregister">
-  <querytext>
-    select apm__unregister_parameter(:parameter_id)
-  </querytext>
 </fullquery>
 
 <fullquery name="apm_dependency_add.dependency_add">      
@@ -147,6 +140,24 @@
 	select apm_package__delete(:package_id);
   </querytext>
 </fullquery>
+
+
+<fullquery name="apm_parameter_unregister.parameter_unregister">      
+      <querytext>
+      
+	begin
+	delete from apm_parameter_values 
+	where parameter_id = :parameter_id;
+	delete from apm_parameters 
+	where parameter_id = :parameter_id;
+	PERFORM acs_object__delete(:parameter_id);
+
+        return null;
+	end;
+    
+      </querytext>
+</fullquery>
+
 
 <fullquery name="apm_package_url_from_id_mem.apm_package_url_from_id">      
       <querytext>

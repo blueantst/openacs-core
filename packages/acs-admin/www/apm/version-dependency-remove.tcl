@@ -19,10 +19,6 @@ db_transaction {
 	    apm_interface_remove $dependency_id
 	}
 
-	extend {
-	    apm_interface_remove $dependency_id
-	}
-
 	default {
 	    ad_return complaint 1 "Dependency Entry Error: Depenendencies are either interfaces or requirements."
 	}

@@ -500,7 +500,6 @@ a.button:active {
 
 .center {text-align: center;}
 .small {font-size: x-small;}
-.bold {font-weight: bold;}
 
 /*  ARE THESE NEEDED ??? -----------------------------------------------------------*/
 
@@ -691,7 +690,6 @@ ul.compact li, .action-list ul li {
   border-top: 0px;
   padding: 6px 8px 6px 8px;
   clear:left;
-  overflow: auto;
 }
 
 /* END OF PORTLETS */

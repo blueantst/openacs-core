@@ -10,9 +10,7 @@ ad_library {
 }
 
 # First check that ns_proxy is configured
-if {![catch {set handler [ns_proxy get exec_proxy]}]} {
-    ns_proxy release $handler
-    
+if {![catch {ns_proxy get exec_proxy}]} {
     namespace eval proxy {}
     
     ad_proc -public proxy::exec {
@@ -23,11 +21,8 @@ if {![catch {set handler [ns_proxy get exec_proxy]}]} {
 	@param call Call which is passed to the "exec" command
     } {
 	set handle [ns_proxy get exec_proxy]
-	with_finally -code {
-	    set return_string [ns_proxy eval $handle "exec $call"]
-	} -finally {
-	    ns_proxy release $handle
-	}
+	set return_string [ns_proxy eval $handle "exec $call"]
+	ns_proxy release $handle
 	return $return_string
     }
 

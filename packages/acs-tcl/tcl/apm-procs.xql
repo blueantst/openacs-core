@@ -7,7 +7,7 @@
       from apm_package_versions apv, apm_package_dependencies apd
       where apd.version_id = apv.version_id
         and apv.enabled_p = 't'
-        and apd.dependency_type in ('extends', 'embeds')
+        and apd.dependency_type = 'extends'
         and apd.service_uri = :package_key
     </querytext>
   </fullquery>
@@ -20,19 +20,7 @@
     </querytext>
   </fullquery>
 
-  <fullquery name="apm_package_list_search_order.get_dependencies">
-    <querytext>
-      select apd.service_uri
-      from apm_package_versions apv, apm_package_dependencies apd
-      where apv.package_key = :package_key
-        and apv.installed_p = 't'
-        and apd.version_id = apv.version_id
-        and apd.dependency_type in ('extends', 'embeds')
-      order by apd.dependency_id
-    </querytext>
-  </fullquery>
-
-  <fullquery name="apm_package_list_url_resolution.get_inherit_templates_p">
+  <fullquery name="apm_package_list_search_order.get_inherit_templates_p">
     <querytext>
       select inherit_templates_p
       from apm_package_types
@@ -40,15 +28,14 @@
     </querytext>
   </fullquery>
 
-  <fullquery name="apm_package_list_url_resolution.get_dependencies">
+  <fullquery name="apm_package_list_search_order.get_dependencies">
     <querytext>
-      select apd.service_uri, apd.dependency_type
+      select apd.service_uri
       from apm_package_versions apv, apm_package_dependencies apd
       where apv.package_key = :package_key
         and apv.installed_p = 't'
         and apd.version_id = apv.version_id
-        and (apd.dependency_type = 'embeds'
-             or apd.dependency_type =  'extends' and :inherit_templates_p = 't')
+        and apd.dependency_type = 'extends'
       order by apd.dependency_id
     </querytext>
   </fullquery>
@@ -60,7 +47,7 @@
       where apv.package_key = :package_key
         and apv.installed_p = 't'
         and apd.version_id = apv.version_id
-        and apd.dependency_type in ('extends', 'embeds')
+        and apd.dependency_type = 'extends'
       order by apd.dependency_id desc
     </querytext>
   </fullquery>
@@ -72,7 +59,7 @@
       where apv.package_key = :package_key
         and apv.installed_p = 't'
         and apd.version_id = apv.version_id
-        and apd.dependency_type in ('requires', 'embeds', 'extends')
+        and apd.dependency_type in ('requires', 'extends')
       order by apd.dependency_id desc
     </querytext>
   </fullquery>
@@ -172,23 +159,6 @@
     </querytext>
   </fullquery>
   
-  <fullquery name="apm_parameter_unregister.select_parameter_id">      
-    <querytext>
-      select parameter_id
-      from apm_parameters
-      where package_key = :package_key
-        and parameter_name = :parameter
-    </querytext>
-  </fullquery>
-  
-  <fullquery name="apm_parameter_unregister.get_scope_and_name">      
-    <querytext>
-      select scope, parameter_name
-      from apm_parameters
-      where parameter_id = :parameter_id
-    </querytext>
-  </fullquery>
-  
   <fullquery name="apm_parameter_unregister.all_parameters_packages">      
     <querytext>
       select package_id, parameter_id, parameter_name 
@@ -242,8 +212,7 @@
     <querytext>
       select parameter_name, attr_value
       from apm_parameters p, apm_parameter_values v, apm_packages a
-      where p.scope = 'instance'
-      and p.parameter_id = v.parameter_id
+      where p.parameter_id = v.parameter_id
       and a.package_id = v.package_id
       and a.package_id = :package_id
     </querytext>

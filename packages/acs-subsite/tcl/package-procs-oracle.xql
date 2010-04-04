@@ -277,9 +277,9 @@ END ${package_name};
       <querytext>
       
     BEGIN
-      :1 := ${__package_name}.${__object_name}([plsql_utility::generate_attribute_parameter_call \
+      :1 := ${package_name}.${object_name}([plsql_utility::generate_attribute_parameter_call \
 	      -prepend ":" \
-	      -indent [expr [string length $__package_name] + 29] \
+	      -indent [expr [string length $package_name] + 29] \
 	      $pieces]
       );
     END; 
@@ -291,14 +291,15 @@ END ${package_name};
       <querytext>
       
     BEGIN
-      ${__package_name}.${__object_name}([plsql_utility::generate_attribute_parameter_call \
+      ${package_name}.${object_name}([plsql_utility::generate_attribute_parameter_call \
 	      -prepend ":" \
-	      -indent [expr [string length $__package_name] + 29] \
+	      -indent [expr [string length $package_name] + 29] \
 	      $pieces]
       );
     END; 
     
       </querytext>
 </fullquery>
+
  
 </queryset>
